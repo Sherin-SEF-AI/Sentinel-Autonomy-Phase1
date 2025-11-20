@@ -14,10 +14,10 @@ from PyQt6.QtCore import Qt
 # Note: PYTHONPATH should include src directory
 # sys.path modification removed to allow proper package imports
 
-from core.logging import LoggerSetup
-from core.config import ConfigManager
-from gui.main_window import SENTINELMainWindow
-from gui.themes import ThemeManager
+from src.core.logging import LoggerSetup
+from src.core.config import ConfigManager
+from src.gui.main_window import SENTINELMainWindow
+from src.gui.themes import ThemeManager
 
 # Module logger
 logger = logging.getLogger(__name__)

@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtGui import QPainter, QColor, QPen, QFont, QBrush
 
-from core.data_structures import VehicleTelemetry
+from src.core.data_structures import VehicleTelemetry
 from .circular_gauge import CircularGaugeWidget
 
 logger = logging.getLogger(__name__)
