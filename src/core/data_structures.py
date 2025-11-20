@@ -142,3 +142,116 @@ class VehicleTelemetry:
     throttle_position: float  # 0-1
     gear: int
     turn_signal: str  # 'left', 'right', 'none'
+
+
+@dataclass
+class DetectedLane:
+    """Lane detected from vision."""
+    lane_id: int  # 0=left, 1=ego_left, 2=ego_right, 3=right
+    points: np.ndarray  # (N, 2) pixel coordinates
+    coefficients: np.ndarray  # Polynomial coefficients (e.g., 2nd order: [a, b, c] for y = ax^2 + bx + c)
+    confidence: float  # 0-1
+    lane_type: str  # 'dashed', 'solid', 'double'
+    color: str  # 'white', 'yellow'
+
+
+@dataclass
+class LaneState:
+    """Current lane state and departure warning."""
+    timestamp: float
+    lanes_detected: List[DetectedLane]
+    ego_lane_center: Optional[Tuple[float, float]]  # (x, y) offset from vehicle center
+    lateral_offset: float  # meters, negative=left, positive=right
+    heading_angle: float  # radians, relative to lane direction
+    departure_warning: bool
+    departure_side: str  # 'left', 'right', 'none'
+    time_to_lane_crossing: Optional[float]  # seconds
+
+
+@dataclass
+class TrafficSign:
+    """Detected traffic sign."""
+    sign_type: str  # 'stop', 'yield', 'speed_limit', 'warning', etc.
+    sign_class: str  # Specific classification (e.g., 'speed_limit_50')
+    value: Optional[int]  # For speed limits, etc.
+    position: Tuple[float, float, float]  # 3D position in vehicle frame
+    bbox_2d: Tuple[float, float, float, float]  # 2D bbox in camera frame
+    confidence: float
+    camera_id: int
+
+
+@dataclass
+class BlindSpotWarning:
+    """Blind spot detection warning."""
+    timestamp: float
+    left_blind_spot: bool
+    right_blind_spot: bool
+    left_objects: List[Detection3D]
+    right_objects: List[Detection3D]
+    warning_active: bool
+    warning_side: str  # 'left', 'right', 'both', 'none'
+
+
+@dataclass
+class CollisionWarning:
+    """Forward collision warning."""
+    timestamp: float
+    warning_level: str  # 'none', 'caution', 'warning', 'critical'
+    time_to_collision: Optional[float]  # seconds
+    target_object: Optional[Detection3D]
+    recommended_deceleration: float  # m/s^2
+    automatic_braking_required: bool
+
+
+@dataclass
+class RoadCondition:
+    """Road surface condition analysis."""
+    timestamp: float
+    surface_type: str  # 'dry', 'wet', 'snow', 'ice'
+    confidence: float
+    visibility: str  # 'clear', 'rain', 'fog', 'snow'
+    hazards: List[str]  # 'puddle', 'pothole', 'debris', 'construction'
+    friction_estimate: float  # 0-1, 1=optimal
+
+
+@dataclass
+class ParkingSpace:
+    """Detected parking space."""
+    space_id: int
+    corners: np.ndarray  # (4, 2) corners in BEV coordinates
+    width: float  # meters
+    length: float  # meters
+    occupied: bool
+    confidence: float
+    space_type: str  # 'parallel', 'perpendicular', 'angled'
+
+
+@dataclass
+class TripStats:
+    """Trip statistics and analytics."""
+    start_time: float
+    end_time: Optional[float]
+    distance: float  # meters
+    duration: float  # seconds
+    average_speed: float  # m/s
+    max_speed: float  # m/s
+    num_hard_brakes: int
+    num_rapid_accelerations: int
+    num_lane_departures: int
+    num_collision_warnings: int
+    num_blind_spot_warnings: int
+    average_attention_score: float  # 0-100
+    safety_score: float  # 0-100
+
+
+@dataclass
+class DriverScore:
+    """Real-time driver behavior scoring."""
+    timestamp: float
+    overall_score: float  # 0-100
+    attention_score: float  # 0-100
+    smoothness_score: float  # 0-100
+    safety_score: float  # 0-100
+    hazard_response_score: float  # 0-100
+    recent_events: List[Dict[str, Any]]  # Recent incidents affecting score
+

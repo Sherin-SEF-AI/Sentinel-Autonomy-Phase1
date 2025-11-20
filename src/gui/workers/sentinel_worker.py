@@ -29,6 +29,7 @@ from src.dms import DriverMonitor
 from src.intelligence import ContextualIntelligence
 from src.alerts import AlertSystem
 from src.recording import ScenarioRecorder
+from src.features import FeaturesManager
 
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,16 @@ class SentinelWorker(QThread):
     performance_ready = pyqtSignal(dict)  # Performance metrics
     error_occurred = pyqtSignal(str, str)  # (error_type, error_message)
     status_changed = pyqtSignal(str)  # Status message
+
+    # Advanced features signals
+    lane_state_ready = pyqtSignal(object)  # LaneState
+    blind_spot_warning_ready = pyqtSignal(object)  # BlindSpotWarning
+    collision_warning_ready = pyqtSignal(object)  # CollisionWarning
+    traffic_signs_ready = pyqtSignal(list)  # List[TrafficSign]
+    road_condition_ready = pyqtSignal(object)  # RoadCondition
+    parking_spaces_ready = pyqtSignal(list)  # List[ParkingSpace]
+    driver_score_ready = pyqtSignal(object)  # DriverScore
+    trip_stats_ready = pyqtSignal(object)  # TripStats
     
     def __init__(self, config: ConfigManager, parent=None):
         """
@@ -104,6 +115,7 @@ class SentinelWorker(QThread):
         self.intelligence: Optional[ContextualIntelligence] = None
         self.alert_system: Optional[AlertSystem] = None
         self.recorder: Optional[ScenarioRecorder] = None
+        self.features_manager: Optional[FeaturesManager] = None
         
         self.logger.info("SentinelWorker initialized")
     
@@ -201,7 +213,14 @@ class SentinelWorker(QThread):
             # Initialize scenario recorder
             self.logger.info("Initializing Scenario Recorder...")
             self.recorder = ScenarioRecorder(self.config)
-            
+
+            # Initialize features manager
+            self.logger.info("Initializing Advanced Features Manager...")
+            self.features_manager = FeaturesManager(self.config)
+
+            # Start trip tracking automatically
+            self.features_manager.start_trip()
+
             self.logger.info("All modules initialized successfully")
             return True
             
@@ -339,6 +358,35 @@ class SentinelWorker(QThread):
                 # Emit alerts (deep copy)
                 alerts_copy = self._copy_alerts(alerts)
                 self.alerts_ready.emit(alerts_copy)
+
+                # Process advanced features
+                features_outputs = self.features_manager.process_frame(
+                    timestamp=timestamp,
+                    camera_frames=frames_dict,
+                    detections_3d=detections_3d,
+                    driver_state=driver_state,
+                    bev_seg=seg_output,
+                    vehicle_telemetry=None,  # No vehicle telemetry available yet
+                    top_risks=risk_assessment.top_risks
+                )
+
+                # Emit feature outputs
+                if features_outputs.get('lane_state'):
+                    self.lane_state_ready.emit(features_outputs['lane_state'])
+                if features_outputs.get('blind_spot_warning'):
+                    self.blind_spot_warning_ready.emit(features_outputs['blind_spot_warning'])
+                if features_outputs.get('collision_warning'):
+                    self.collision_warning_ready.emit(features_outputs['collision_warning'])
+                if features_outputs.get('traffic_signs'):
+                    self.traffic_signs_ready.emit(features_outputs['traffic_signs'])
+                if features_outputs.get('road_condition'):
+                    self.road_condition_ready.emit(features_outputs['road_condition'])
+                if features_outputs.get('parking_spaces'):
+                    self.parking_spaces_ready.emit(features_outputs['parking_spaces'])
+                if features_outputs.get('driver_score'):
+                    self.driver_score_ready.emit(features_outputs['driver_score'])
+                if features_outputs.get('trip_stats'):
+                    self.trip_stats_ready.emit(features_outputs['trip_stats'])
 
                 # Process frame for recording (automatic trigger-based recording)
                 self.recorder.process_frame(

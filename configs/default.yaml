@@ -253,3 +253,86 @@ cloud:
   scenarios_dir: "scenarios"
   profiles_dir: "profiles"
   models_dir: "models"
+
+# =============================================================================
+# Advanced Features Configuration
+# =============================================================================
+features:
+  # Lane detection and departure warning
+  lane_detection:
+    enabled: true
+    detector:
+      canny_low: 50
+      canny_high: 150
+      hough_threshold: 30
+      min_line_length: 40
+      max_line_gap: 100
+      use_smoothing: true
+      smoothing_alpha: 0.8
+    departure_warning:
+      lateral_offset_threshold: 0.3  # meters
+      time_to_crossing_threshold: 2.0  # seconds
+      min_speed_for_warning: 8.0  # m/s (~30 km/h)
+      pixels_per_meter: 30.0
+
+  # Blind spot monitoring
+  blind_spot:
+    enabled: true
+    left_zone_y_min: 0.5  # meters (left side)
+    left_zone_y_max: 2.5
+    right_zone_y_min: -2.5  # meters (right side)
+    right_zone_y_max: -0.5
+    zone_x_min: -3.0  # Behind vehicle
+    zone_x_max: 1.0  # Slightly ahead
+    min_object_confidence: 0.5
+    warning_hysteresis_frames: 5
+
+  # Forward collision warning
+  collision_warning:
+    enabled: true
+    caution_ttc: 3.5  # Time-to-collision thresholds (seconds)
+    warning_ttc: 2.5
+    critical_ttc: 1.5
+    emergency_braking_ttc: 0.8
+    zone_width: 3.0  # meters
+    zone_length_max: 100.0  # meters
+    min_confidence: 0.5
+    min_speed_for_warning: 5.0  # m/s
+
+  # Traffic sign recognition
+  traffic_signs:
+    enabled: true
+    confidence_threshold: 0.6
+    nms_threshold: 0.4
+
+  # Road surface analysis
+  road_analysis:
+    enabled: true
+    wet_threshold: 0.3
+    puddle_min_area: 100  # pixels
+
+  # Parking assistance
+  parking:
+    enabled: false  # Enable manually when needed
+    min_width: 2.0  # meters
+    min_length: 4.5  # meters
+    vehicle_width: 1.8  # meters
+    vehicle_length: 4.5  # meters
+    parking_clearance: 0.3  # meters
+    pixels_per_meter: 30.0
+
+  # Trip analytics
+  trip_analytics:
+    enabled: true
+    save_dir: "data/trips"
+    hard_brake_threshold: 4.0  # m/s²
+    rapid_accel_threshold: 3.0  # m/s²
+
+  # Driver behavior scoring
+  driver_scoring:
+    enabled: true
+    attention_weight: 0.4
+    smoothness_weight: 0.2
+    safety_weight: 0.3
+    hazard_response_weight: 0.1
+    event_window: 60.0  # seconds
