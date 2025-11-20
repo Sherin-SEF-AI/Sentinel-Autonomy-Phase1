@@ -7,6 +7,7 @@ This module contains all custom widgets used in the SENTINEL application.
 # Auto-generated exports
 from .alerts_panel import AlertsPanel
 from .bev_canvas import BEVCanvas, BEVGraphicsView
+from .camera_viewer_dock import CameraViewerDock, CameraFeedWidget
 from .circular_gauge import CircularGaugeWidget
 from .cloud_settings_dock import CloudSettingsDock
 from .configuration_dock import ConfigurationDockWidget, LabeledSlider
@@ -33,6 +34,8 @@ __all__ = [
     'BarIndicator',
     'BEVCanvas',
     'BEVGraphicsView',
+    'CameraFeedWidget',
+    'CameraViewerDock',
     'CircularGaugeWidget',
     'CloudSettingsDock',
     'ConfigurationDockWidget',
