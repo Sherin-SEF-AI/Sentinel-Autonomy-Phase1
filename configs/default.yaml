@@ -336,3 +336,22 @@ features:
     safety_weight: 0.3
     hazard_response_weight: 0.1
     event_window: 60.0  # seconds
+
+  # Multi-object interaction prediction
+  interaction_prediction:
+    enabled: true
+    pedestrian_crossing_threshold: 1.5  # meters from center
+    lane_change_lateral_threshold: 0.3  # m/s lateral velocity
+    merge_angle_threshold: 20  # degrees
+    cyclist_turn_angle_threshold: 15  # degrees
+    overtake_speed_threshold: 5.0  # m/s relative speed
+    collision_prediction_horizon: 5.0  # seconds
+    min_confidence: 0.3
+
+  # GPS tracking and speed limit monitoring
+  gps:
+    enabled: false  # Enable when GPS hardware is available
+    device: "/dev/ttyUSB0"  # GPS device path
+    baudrate: 9600  # GPS serial baudrate
+    simulation: true  # Use simulation mode for testing
+    cache_file: "data/speed_limits_cache.json"  # Speed limit cache

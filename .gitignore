@@ -44,9 +44,18 @@ models/*.onnx
 models/*.trt
 
 # Data
+data/trips/*.json
+data/speed_limits_cache.json
+data/driver_scores/
+data/logs/
 scenarios/*/
+!scenarios/README.md
+!data/README.md
 *.mp4
 *.avi
+*.jpg
+*.png
+*.jpeg
 
 # System
 .DS_Store

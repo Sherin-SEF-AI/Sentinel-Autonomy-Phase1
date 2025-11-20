@@ -13,8 +13,10 @@ from .backend import (
     PerformanceMonitor,
     create_streaming_manager
 )
+from .camera_overlay import CameraOverlayRenderer
 
 __all__ = [
+    'CameraOverlayRenderer',
     'VisualizationServer',
     'create_server',
     'serialize_frame_data',
