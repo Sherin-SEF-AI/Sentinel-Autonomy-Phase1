@@ -233,7 +233,10 @@ class SentinelWorker(QThread):
                     # No frames available, skip this iteration
                     self.msleep(1)  # Sleep for 1ms
                     continue
-                
+
+                # Extract timestamp from bundle
+                timestamp = camera_bundle.timestamp
+
                 # Deep copy frames for thread-safe emission
                 frames_dict = self._copy_camera_bundle(camera_bundle)
                 self.frame_ready.emit(frames_dict)
@@ -336,31 +339,22 @@ class SentinelWorker(QThread):
                 # Emit alerts (deep copy)
                 alerts_copy = self._copy_alerts(alerts)
                 self.alerts_ready.emit(alerts_copy)
-                
-                # Record scenarios when triggered
-                if self.recorder.should_record(risk_assessment, driver_state):
-                    if not self.recorder.is_recording:
-                        self.recorder.start_recording()
-                    
-                    self.recorder.save_frame(
-                        camera_bundle=camera_bundle,
-                        bev_output=bev_output,
-                        detections=detections_3d,
-                        driver_state=driver_state,
-                        risk_assessment=risk_assessment,
-                        alerts=alerts
-                    )
-                elif self.recorder.is_recording:
-                    # Stop recording if no longer triggered
-                    self.recorder.stop_recording()
-                    scenario_path = self.recorder.export_scenario()
-                    if scenario_path:
-                        self.logger.info(f"Scenario exported to: {scenario_path}")
-                
+
+                # Process frame for recording (automatic trigger-based recording)
+                self.recorder.process_frame(
+                    timestamp=timestamp,
+                    camera_bundle=camera_bundle,
+                    bev_output=bev_output,
+                    detections_3d=detections_3d,
+                    driver_state=driver_state,
+                    risk_assessment=risk_assessment,
+                    alerts=alerts
+                )
+
                 # Update frame count and emit performance metrics
                 self.frame_count += 1
                 loop_time = time.time() - loop_start
-                
+
                 if self.frame_count % 10 == 0:  # Emit every 10 frames
                     perf_metrics = self._calculate_performance_metrics(loop_time)
                     self.performance_ready.emit(perf_metrics)

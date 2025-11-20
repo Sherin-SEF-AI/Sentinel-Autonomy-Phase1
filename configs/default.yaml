@@ -5,7 +5,8 @@ system:
 
 cameras:
   # Frame synchronization tolerance (ms) - USB cameras typically need 50-100ms
-  sync_tolerance_ms: 50.0
+  # Increased to 100ms to handle hardware timing variations (was seeing 60ms deviations)
+  sync_tolerance_ms: 100.0
 
   interior:
     device: 0
