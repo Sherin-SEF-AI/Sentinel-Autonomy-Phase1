@@ -126,7 +126,8 @@ class SentinelSystem:
             
             # Initialize object detector
             self.logger.info("Initializing Object Detector...")
-            self.detector = ObjectDetector(self.config)
+            detection_config = self.config.get('detection', {})
+            self.detector = ObjectDetector(detection_config, calibrations)
             
             # Initialize DMS
             self.logger.info("Initializing Driver Monitoring System...")
