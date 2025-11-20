@@ -44,7 +44,6 @@ class CameraManager(ICameraManager):
         self.is_running = False
         self.required_cameras = set([0, 1, 2])  # All cameras required for full operation
         self.degraded_mode = False
-        self.simulation_mode = False
 
         # Statistics
         self.frame_count = 0
@@ -84,16 +83,26 @@ class CameraManager(ICameraManager):
             else:
                 self.logger.error(f"Failed to start camera {camera_name} (id={camera_id})")
         
-        # Check if we have minimum required cameras
+        # Check camera availability
         if len(self.captures) == 0:
-            self.logger.warning("No cameras could be initialized - running in SIMULATION mode")
-            self.logger.warning("The system will generate mock camera frames for testing")
-            self.degraded_mode = True
-            self.simulation_mode = True
-        elif len(self.captures) < len(self.required_cameras):
-            self.logger.warning(
-                f"Running in degraded mode: {len(self.captures)}/{len(self.required_cameras)} cameras active"
+            raise RuntimeError(
+                "No cameras could be initialized. Please check:\n"
+                "1. Camera devices are connected\n"
+                "2. Camera permissions (try: sudo chmod 666 /dev/video*)\n"
+                "3. No other application is using the cameras"
             )
+
+        # Log camera status
+        self.logger.info(f"Initialized {len(self.captures)}/{len(self.required_cameras)} cameras")
+        for cam_id in self.captures.keys():
+            cam_name = [name for name, id in self.camera_name_to_id.items() if id == cam_id][0]
+            self.logger.info(f"  ✓ Camera {cam_id} ({cam_name}) - ACTIVE")
+
+        missing = self.required_cameras - set(self.captures.keys())
+        if missing:
+            for cam_id in missing:
+                cam_name = [name for name, id in self.camera_name_to_id.items() if id == cam_id][0]
+                self.logger.warning(f"  ✗ Camera {cam_id} ({cam_name}) - NOT AVAILABLE")
             self.degraded_mode = True
         
         self.is_running = True
@@ -115,7 +124,7 @@ class CameraManager(ICameraManager):
     
     def get_frame_bundle(self) -> Optional[CameraBundle]:
         """
-        Get synchronized frame bundle.
+        Get synchronized frame bundle from available cameras.
 
         Returns:
             CameraBundle with synchronized frames or None if synchronization fails
@@ -123,24 +132,7 @@ class CameraManager(ICameraManager):
         if not self.is_running:
             return None
 
-        # If in simulation mode (no cameras), generate mock frames
-        if self.simulation_mode:
-            import time
-            timestamp = time.time()
-            # Generate simple gradient frames for testing
-            interior = self._create_mock_frame((480, 640, 3), self.frame_count)
-            front_left = self._create_mock_frame((720, 1280, 3), self.frame_count + 1)
-            front_right = self._create_mock_frame((720, 1280, 3), self.frame_count + 2)
-
-            self.frame_count += 1
-            return CameraBundle(
-                timestamp=timestamp,
-                interior=interior,
-                front_left=front_left,
-                front_right=front_right
-            )
-
-        # Collect latest frames from all cameras
+        # Collect latest frames from all active cameras
         frames = {}
         for camera_id, capture in self.captures.items():
             frame_data = capture.get_latest_frame()
@@ -231,30 +223,6 @@ class CameraManager(ICameraManager):
     def _create_black_frame(self, shape: tuple) -> np.ndarray:
         """Create a black frame of specified shape."""
         return np.zeros(shape, dtype=np.uint8)
-
-    def _create_mock_frame(self, shape: tuple, seed: int) -> np.ndarray:
-        """
-        Create a simulated camera frame for testing.
-
-        Args:
-            shape: Frame shape (height, width, channels)
-            seed: Seed value for variation
-
-        Returns:
-            Simulated frame with gradient pattern
-        """
-        h, w, c = shape
-        # Create a simple animated gradient pattern
-        frame = np.zeros(shape, dtype=np.uint8)
-
-        # Create horizontal gradient with animation
-        for y in range(h):
-            intensity = int((y / h) * 255)
-            # Add some animation based on seed
-            intensity = (intensity + seed * 2) % 256
-            frame[y, :] = intensity
-
-        return frame
 
     def _check_and_reconnect_cameras(self) -> None:
         """Check camera health and attempt reconnection for failed cameras."""
