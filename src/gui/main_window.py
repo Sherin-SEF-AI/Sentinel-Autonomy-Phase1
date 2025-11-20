@@ -19,6 +19,7 @@ from .widgets.driver_state_panel import DriverStatePanel
 from .widgets.risk_panel import RiskAssessmentPanel
 from .widgets.alerts_panel import AlertsPanel
 from .widgets.performance_dock import PerformanceDockWidget
+from .widgets.camera_viewer_dock import CameraViewerDock
 from .themes import ThemeManager
 from .workers import SentinelWorker
 from src.core.config import ConfigManager
@@ -99,15 +100,23 @@ class SENTINELMainWindow(QMainWindow):
         # Performance Monitoring Dock
         self.performance_dock = PerformanceDockWidget()
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.performance_dock)
-        
+
+        # Camera Viewer Dock
+        self.camera_viewer_dock = CameraViewerDock()
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.camera_viewer_dock)
+
         # Tabify right-side docks
         self.tabifyDockWidget(self.driver_state_dock, self.risk_dock)
         self.tabifyDockWidget(self.risk_dock, self.alerts_dock)
-        
-        # Show driver state panel by default
-        self.driver_state_dock.raise_()
-        
-        logger.debug("Dock widgets created")
+
+        # Tabify bottom-left docks
+        self.tabifyDockWidget(self.performance_dock, self.camera_viewer_dock)
+
+        # Show default tabs
+        self.driver_state_dock.raise_()  # Right side
+        self.performance_dock.raise_()  # Bottom
+
+        logger.debug("Dock widgets created: 5 docks (Driver/Risk/Alerts/Performance/Cameras)")
     
     def _create_menus(self):
         """Create menu bar with all menus"""
@@ -651,12 +660,15 @@ class SENTINELMainWindow(QMainWindow):
         
         # Connect performance_ready signal to performance dock
         self.worker.performance_ready.connect(self._on_performance_ready)
-        
+
+        # Connect frame_ready signal to camera viewer
+        self.worker.frame_ready.connect(self.camera_viewer_dock.update_camera_frames)
+
         # Connect error and status signals
         self.worker.error_occurred.connect(self._on_worker_error)
         self.worker.status_changed.connect(self._on_worker_status_changed)
-        
-        logger.info("All worker signals connected")
+
+        logger.info("All worker signals connected (including camera viewer)")
     
     # Worker signal handler slots
     

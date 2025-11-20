@@ -4,18 +4,21 @@ system:
   log_level: "INFO"
 
 cameras:
+  # Frame synchronization tolerance (ms) - USB cameras typically need 50-100ms
+  sync_tolerance_ms: 50.0
+
   interior:
     device: 0
     resolution: [640, 480]
     fps: 30
     calibration: "configs/calibration/interior.yaml"
-  
+
   front_left:
     device: 1
     resolution: [1280, 720]
     fps: 30
     calibration: "configs/calibration/front_left.yaml"
-  
+
   front_right:
     device: 2
     resolution: [1280, 720]

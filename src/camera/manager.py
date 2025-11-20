@@ -37,8 +37,12 @@ class CameraManager(ICameraManager):
         
         # Initialize components
         self.captures: Dict[int, CameraCapture] = {}
-        self.sync = TimestampSync(tolerance_ms=5.0)
+        # Use larger tolerance for USB cameras (typically have 30-50ms timestamp differences)
+        sync_tolerance = config.get('cameras', {}).get('sync_tolerance_ms', 50.0)
+        self.sync = TimestampSync(tolerance_ms=sync_tolerance)
         self.calibration_loader = CalibrationLoader()
+
+        self.logger.info(f"Camera sync tolerance: {sync_tolerance}ms")
         
         # State
         self.is_running = False
