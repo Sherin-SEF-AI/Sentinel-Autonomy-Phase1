@@ -32,7 +32,7 @@ from src.dms import DriverMonitor
 from src.intelligence import ContextualIntelligence
 from src.alerts import AlertSystem
 from src.recording import ScenarioRecorder
-from visualization.backend import VisualizationServer, StreamingManager
+from src.visualization.backend import VisualizationServer, StreamingManager
 
 
 class SentinelSystem:

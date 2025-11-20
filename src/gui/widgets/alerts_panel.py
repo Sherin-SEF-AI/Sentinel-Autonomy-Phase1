@@ -18,7 +18,7 @@ from PyQt6.QtGui import QTextCursor, QFont, QColor
 from PyQt6.QtMultimedia import QSoundEffect, QAudioOutput, QMediaPlayer
 from PyQt6.QtCore import QUrl
 
-from core.data_structures import Alert
+from src.core.data_structures import Alert
 
 logger = logging.getLogger(__name__)
 

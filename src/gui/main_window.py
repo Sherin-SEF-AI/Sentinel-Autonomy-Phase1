@@ -21,7 +21,7 @@ from .widgets.alerts_panel import AlertsPanel
 from .widgets.performance_dock import PerformanceDockWidget
 from .themes import ThemeManager
 from .workers import SentinelWorker
-from core.config import ConfigManager
+from src.core.config import ConfigManager
 
 logger = logging.getLogger(__name__)
 

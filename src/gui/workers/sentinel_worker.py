@@ -14,21 +14,21 @@ import numpy as np
 
 from PyQt6.QtCore import QThread, pyqtSignal, QMutex, QMutexLocker
 
-from core.config import ConfigManager
-from core.data_structures import (
+from src.core.config import ConfigManager
+from src.core.data_structures import (
     CameraBundle, BEVOutput, SegmentationOutput,
     Detection3D, DriverState, RiskAssessment, Alert
 )
 
 # Import system modules
-from camera import CameraManager
-from perception.bev import BEVGenerator
-from perception.segmentation import SemanticSegmentor
-from perception.detection import ObjectDetector
-from dms import DriverMonitor
-from intelligence import ContextualIntelligence
-from alerts import AlertSystem
-from recording import ScenarioRecorder
+from src.camera import CameraManager
+from src.perception.bev import BEVGenerator
+from src.perception.segmentation import SemanticSegmentor
+from src.perception.detection import ObjectDetector
+from src.dms import DriverMonitor
+from src.intelligence import ContextualIntelligence
+from src.alerts import AlertSystem
+from src.recording import ScenarioRecorder
 
 
 logger = logging.getLogger(__name__)
