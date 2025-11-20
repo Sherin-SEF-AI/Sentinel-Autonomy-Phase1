@@ -29,6 +29,7 @@ from src.dms import DriverMonitor
 from src.intelligence import ContextualIntelligence
 from src.alerts import AlertSystem
 from src.recording import ScenarioRecorder
+from src.features import FeaturesManager
 
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,20 @@ class SentinelWorker(QThread):
     performance_ready = pyqtSignal(dict)  # Performance metrics
     error_occurred = pyqtSignal(str, str)  # (error_type, error_message)
     status_changed = pyqtSignal(str)  # Status message
+
+    # Advanced features signals
+    lane_state_ready = pyqtSignal(object)  # LaneState
+    blind_spot_warning_ready = pyqtSignal(object)  # BlindSpotWarning
+    collision_warning_ready = pyqtSignal(object)  # CollisionWarning
+    traffic_signs_ready = pyqtSignal(list)  # List[TrafficSign]
+    road_condition_ready = pyqtSignal(object)  # RoadCondition
+    parking_spaces_ready = pyqtSignal(list)  # List[ParkingSpace]
+    driver_score_ready = pyqtSignal(object)  # DriverScore
+    trip_stats_ready = pyqtSignal(object)  # TripStats
+    interactions_ready = pyqtSignal(list)  # List[PredictedInteraction]
+    gps_data_ready = pyqtSignal(object)  # GPSData
+    location_info_ready = pyqtSignal(object)  # Dict with location info
+    speed_violation_ready = pyqtSignal(object)  # Speed violation dict or None
     
     def __init__(self, config: ConfigManager, parent=None):
         """
@@ -104,6 +119,7 @@ class SentinelWorker(QThread):
         self.intelligence: Optional[ContextualIntelligence] = None
         self.alert_system: Optional[AlertSystem] = None
         self.recorder: Optional[ScenarioRecorder] = None
+        self.features_manager: Optional[FeaturesManager] = None
         
         self.logger.info("SentinelWorker initialized")
     
@@ -158,10 +174,24 @@ class SentinelWorker(QThread):
             # Initialize camera manager
             self.logger.info("Initializing Camera Manager...")
             self.camera_manager = CameraManager(self.config)
-            
+
+            # Get calibrations for BEV generator
+            camera_name_to_id = {'interior': 0, 'front_left': 1, 'front_right': 2}
+            calibrations = {}
+            for camera_name, camera_id in camera_name_to_id.items():
+                calib = self.camera_manager.get_calibration(camera_id)
+                if calib is not None:
+                    # Convert CameraCalibration to dict format expected by BEVGenerator
+                    calibrations[camera_name] = {
+                        'intrinsics': calib.intrinsics.to_matrix(),
+                        'extrinsics': calib.extrinsics.to_transform_matrix(),
+                        'homography': calib.homography
+                    }
+
             # Initialize BEV generator
             self.logger.info("Initializing BEV Generator...")
-            self.bev_generator = BEVGenerator(self.config)
+            bev_config = self.config.get('bev', {})
+            self.bev_generator = BEVGenerator(bev_config, calibrations)
             
             # Initialize semantic segmentor
             self.logger.info("Initializing Semantic Segmentor...")
@@ -169,7 +199,8 @@ class SentinelWorker(QThread):
             
             # Initialize object detector
             self.logger.info("Initializing Object Detector...")
-            self.detector = ObjectDetector(self.config)
+            detection_config = self.config.get('detection', {})
+            self.detector = ObjectDetector(detection_config, calibrations)
             
             # Initialize DMS
             self.logger.info("Initializing Driver Monitoring System...")
@@ -186,7 +217,14 @@ class SentinelWorker(QThread):
             # Initialize scenario recorder
             self.logger.info("Initializing Scenario Recorder...")
             self.recorder = ScenarioRecorder(self.config)
-            
+
+            # Initialize features manager
+            self.logger.info("Initializing Advanced Features Manager...")
+            self.features_manager = FeaturesManager(self.config)
+
+            # Start trip tracking automatically
+            self.features_manager.start_trip()
+
             self.logger.info("All modules initialized successfully")
             return True
             
@@ -218,7 +256,10 @@ class SentinelWorker(QThread):
                     # No frames available, skip this iteration
                     self.msleep(1)  # Sleep for 1ms
                     continue
-                
+
+                # Extract timestamp from bundle
+                timestamp = camera_bundle.timestamp
+
                 # Deep copy frames for thread-safe emission
                 frames_dict = self._copy_camera_bundle(camera_bundle)
                 self.frame_ready.emit(frames_dict)
@@ -321,31 +362,59 @@ class SentinelWorker(QThread):
                 # Emit alerts (deep copy)
                 alerts_copy = self._copy_alerts(alerts)
                 self.alerts_ready.emit(alerts_copy)
-                
-                # Record scenarios when triggered
-                if self.recorder.should_record(risk_assessment, driver_state):
-                    if not self.recorder.is_recording:
-                        self.recorder.start_recording()
-                    
-                    self.recorder.save_frame(
-                        camera_bundle=camera_bundle,
-                        bev_output=bev_output,
-                        detections=detections_3d,
-                        driver_state=driver_state,
-                        risk_assessment=risk_assessment,
-                        alerts=alerts
-                    )
-                elif self.recorder.is_recording:
-                    # Stop recording if no longer triggered
-                    self.recorder.stop_recording()
-                    scenario_path = self.recorder.export_scenario()
-                    if scenario_path:
-                        self.logger.info(f"Scenario exported to: {scenario_path}")
-                
+
+                # Process advanced features
+                features_outputs = self.features_manager.process_frame(
+                    timestamp=timestamp,
+                    camera_frames=frames_dict,
+                    detections_3d=detections_3d,
+                    driver_state=driver_state,
+                    bev_seg=seg_output,
+                    vehicle_telemetry=None,  # No vehicle telemetry available yet
+                    top_risks=risk_assessment.top_risks
+                )
+
+                # Emit feature outputs
+                if features_outputs.get('lane_state'):
+                    self.lane_state_ready.emit(features_outputs['lane_state'])
+                if features_outputs.get('blind_spot_warning'):
+                    self.blind_spot_warning_ready.emit(features_outputs['blind_spot_warning'])
+                if features_outputs.get('collision_warning'):
+                    self.collision_warning_ready.emit(features_outputs['collision_warning'])
+                if features_outputs.get('traffic_signs'):
+                    self.traffic_signs_ready.emit(features_outputs['traffic_signs'])
+                if features_outputs.get('road_condition'):
+                    self.road_condition_ready.emit(features_outputs['road_condition'])
+                if features_outputs.get('parking_spaces'):
+                    self.parking_spaces_ready.emit(features_outputs['parking_spaces'])
+                if features_outputs.get('driver_score'):
+                    self.driver_score_ready.emit(features_outputs['driver_score'])
+                if features_outputs.get('trip_stats'):
+                    self.trip_stats_ready.emit(features_outputs['trip_stats'])
+                if features_outputs.get('interactions'):
+                    self.interactions_ready.emit(features_outputs['interactions'])
+                if features_outputs.get('gps_data'):
+                    self.gps_data_ready.emit(features_outputs['gps_data'])
+                if features_outputs.get('location_info'):
+                    self.location_info_ready.emit(features_outputs['location_info'])
+                if features_outputs.get('speed_violation') is not None:
+                    self.speed_violation_ready.emit(features_outputs['speed_violation'])
+
+                # Process frame for recording (automatic trigger-based recording)
+                self.recorder.process_frame(
+                    timestamp=timestamp,
+                    camera_bundle=camera_bundle,
+                    bev_output=bev_output,
+                    detections_3d=detections_3d,
+                    driver_state=driver_state,
+                    risk_assessment=risk_assessment,
+                    alerts=alerts
+                )
+
                 # Update frame count and emit performance metrics
                 self.frame_count += 1
                 loop_time = time.time() - loop_start
-                
+
                 if self.frame_count % 10 == 0:  # Emit every 10 frames
                     perf_metrics = self._calculate_performance_metrics(loop_time)
                     self.performance_ready.emit(perf_metrics)

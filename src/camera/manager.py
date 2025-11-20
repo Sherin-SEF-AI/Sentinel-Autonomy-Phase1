@@ -37,14 +37,18 @@ class CameraManager(ICameraManager):
         
         # Initialize components
         self.captures: Dict[int, CameraCapture] = {}
-        self.sync = TimestampSync(tolerance_ms=5.0)
+        # Use larger tolerance for USB cameras (typically have 30-50ms timestamp differences)
+        sync_tolerance = config.get('cameras', {}).get('sync_tolerance_ms', 50.0)
+        self.sync = TimestampSync(tolerance_ms=sync_tolerance)
         self.calibration_loader = CalibrationLoader()
+
+        self.logger.info(f"Camera sync tolerance: {sync_tolerance}ms")
         
         # State
         self.is_running = False
         self.required_cameras = set([0, 1, 2])  # All cameras required for full operation
         self.degraded_mode = False
-        
+
         # Statistics
         self.frame_count = 0
         self.failed_sync_count = 0
@@ -83,14 +87,26 @@ class CameraManager(ICameraManager):
             else:
                 self.logger.error(f"Failed to start camera {camera_name} (id={camera_id})")
         
-        # Check if we have minimum required cameras
+        # Check camera availability
         if len(self.captures) == 0:
-            raise RuntimeError("No cameras could be initialized")
-        
-        if len(self.captures) < len(self.required_cameras):
-            self.logger.warning(
-                f"Running in degraded mode: {len(self.captures)}/{len(self.required_cameras)} cameras active"
+            raise RuntimeError(
+                "No cameras could be initialized. Please check:\n"
+                "1. Camera devices are connected\n"
+                "2. Camera permissions (try: sudo chmod 666 /dev/video*)\n"
+                "3. No other application is using the cameras"
             )
+
+        # Log camera status
+        self.logger.info(f"Initialized {len(self.captures)}/{len(self.required_cameras)} cameras")
+        for cam_id in self.captures.keys():
+            cam_name = [name for name, id in self.camera_name_to_id.items() if id == cam_id][0]
+            self.logger.info(f"  ✓ Camera {cam_id} ({cam_name}) - ACTIVE")
+
+        missing = self.required_cameras - set(self.captures.keys())
+        if missing:
+            for cam_id in missing:
+                cam_name = [name for name, id in self.camera_name_to_id.items() if id == cam_id][0]
+                self.logger.warning(f"  ✗ Camera {cam_id} ({cam_name}) - NOT AVAILABLE")
             self.degraded_mode = True
         
         self.is_running = True
@@ -112,25 +128,25 @@ class CameraManager(ICameraManager):
     
     def get_frame_bundle(self) -> Optional[CameraBundle]:
         """
-        Get synchronized frame bundle.
-        
+        Get synchronized frame bundle from available cameras.
+
         Returns:
             CameraBundle with synchronized frames or None if synchronization fails
         """
         if not self.is_running:
             return None
-        
-        # Collect latest frames from all cameras
+
+        # Collect latest frames from all active cameras
         frames = {}
         for camera_id, capture in self.captures.items():
             frame_data = capture.get_latest_frame()
             if frame_data is not None:
                 frames[camera_id] = frame_data
-        
+
         # Check if we have frames from all active cameras
         if len(frames) != len(self.captures):
             return None
-        
+
         # Synchronize frames
         sync_result = self.sync.synchronize(frames)
         if sync_result is None:
@@ -138,12 +154,12 @@ class CameraManager(ICameraManager):
             if self.failed_sync_count % 10 == 0:
                 self.logger.warning(f"Frame synchronization failed ({self.failed_sync_count} times)")
             return None
-        
+
         synchronized_frames, timestamp = sync_result
-        
+
         # Check for camera health and attempt reconnection if needed
         self._check_and_reconnect_cameras()
-        
+
         # Create CameraBundle
         try:
             bundle = self._create_camera_bundle(synchronized_frames, timestamp)
@@ -211,7 +227,7 @@ class CameraManager(ICameraManager):
     def _create_black_frame(self, shape: tuple) -> np.ndarray:
         """Create a black frame of specified shape."""
         return np.zeros(shape, dtype=np.uint8)
-    
+
     def _check_and_reconnect_cameras(self) -> None:
         """Check camera health and attempt reconnection for failed cameras."""
         # Check each camera

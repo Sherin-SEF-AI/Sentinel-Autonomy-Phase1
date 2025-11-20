@@ -15,6 +15,7 @@ from .advanced_trajectory import (
 )
 from .attention import AttentionMapper
 from .engine import ContextualIntelligence
+from .interaction_predictor import MultiObjectInteractionPredictor
 from .prioritization import RiskPrioritizer
 from .risk import RiskCalculator
 from .scene_graph import SceneGraphBuilder
@@ -30,6 +31,7 @@ __all__ = [
     'CollisionProbabilityCalculator',
     'ContextualIntelligence',
     'LSTMTrajectoryModel',
+    'MultiObjectInteractionPredictor',
     'PerformanceMetrics',
     'PhysicsBasedPredictor',
     'RiskCalculator',

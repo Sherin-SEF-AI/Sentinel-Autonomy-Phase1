@@ -101,10 +101,24 @@ class SentinelSystem:
             # Initialize camera manager
             self.logger.info("Initializing Camera Manager...")
             self.camera_manager = CameraManager(self.config)
-            
+
+            # Get calibrations for BEV generator
+            camera_name_to_id = {'interior': 0, 'front_left': 1, 'front_right': 2}
+            calibrations = {}
+            for camera_name, camera_id in camera_name_to_id.items():
+                calib = self.camera_manager.get_calibration(camera_id)
+                if calib is not None:
+                    # Convert CameraCalibration to dict format expected by BEVGenerator
+                    calibrations[camera_name] = {
+                        'intrinsics': calib.intrinsics.to_matrix(),
+                        'extrinsics': calib.extrinsics.to_transform_matrix(),
+                        'homography': calib.homography
+                    }
+
             # Initialize BEV generator
             self.logger.info("Initializing BEV Generator...")
-            self.bev_generator = BEVGenerator(self.config)
+            bev_config = self.config.get('bev', {})
+            self.bev_generator = BEVGenerator(bev_config, calibrations)
             
             # Initialize semantic segmentor
             self.logger.info("Initializing Semantic Segmentor...")
@@ -112,7 +126,8 @@ class SentinelSystem:
             
             # Initialize object detector
             self.logger.info("Initializing Object Detector...")
-            self.detector = ObjectDetector(self.config)
+            detection_config = self.config.get('detection', {})
+            self.detector = ObjectDetector(detection_config, calibrations)
             
             # Initialize DMS
             self.logger.info("Initializing Driver Monitoring System...")
@@ -133,8 +148,9 @@ class SentinelSystem:
             # Initialize visualization server if enabled
             if self.config.get('visualization.enabled', True):
                 self.logger.info("Initializing Visualization Server...")
-                port = self.config.get('visualization.port', 8080)
-                self.viz_server = VisualizationServer(port=port)
+                # VisualizationServer expects the full config dict
+                viz_config = self.config.config if hasattr(self.config, 'config') else self.config
+                self.viz_server = VisualizationServer(viz_config)
                 self.streaming_manager = StreamingManager(self.viz_server)
             
             self.logger.info("All modules initialized successfully")
@@ -159,10 +175,11 @@ class SentinelSystem:
             self.logger.info("Starting camera capture...")
             self.camera_manager.start()
             
-            # Start visualization server if enabled
+            # Note: Visualization server is initialized but not started here
+            # The server should be run separately using: server.run(host='0.0.0.0', port=8080)
+            # For streaming without the server, StreamingManager can still be used
             if self.viz_server:
-                self.logger.info("Starting visualization server...")
-                self.viz_server.start()
+                self.logger.info("Visualization server initialized (not started in main thread)")
             
             self.logger.info("SENTINEL system started successfully")
             self.logger.info("=" * 60)
@@ -448,10 +465,10 @@ class SentinelSystem:
                 self.logger.info("Stopping camera capture...")
                 self.camera_manager.stop()
             
-            # Stop visualization server
+            # Note: Visualization server cleanup
+            # The server doesn't have a stop() method - it would be stopped externally
             if self.viz_server:
-                self.logger.info("Stopping visualization server...")
-                self.viz_server.stop()
+                self.logger.info("Visualization server resources released")
             
             # Save system state
             self._save_system_state()

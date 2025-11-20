@@ -19,6 +19,8 @@ from .widgets.driver_state_panel import DriverStatePanel
 from .widgets.risk_panel import RiskAssessmentPanel
 from .widgets.alerts_panel import AlertsPanel
 from .widgets.performance_dock import PerformanceDockWidget
+from .widgets.camera_viewer_dock import CameraViewerDock
+from .widgets.advanced_features_dock import AdvancedFeaturesDock
 from .themes import ThemeManager
 from .workers import SentinelWorker
 from src.core.config import ConfigManager
@@ -99,15 +101,30 @@ class SENTINELMainWindow(QMainWindow):
         # Performance Monitoring Dock
         self.performance_dock = PerformanceDockWidget()
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.performance_dock)
-        
+
+        # Camera Viewer Dock
+        self.camera_viewer_dock = CameraViewerDock()
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.camera_viewer_dock)
+
+        # Advanced Features Dock
+        self.advanced_features_dock = AdvancedFeaturesDock()
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.advanced_features_dock)
+
         # Tabify right-side docks
         self.tabifyDockWidget(self.driver_state_dock, self.risk_dock)
         self.tabifyDockWidget(self.risk_dock, self.alerts_dock)
-        
-        # Show driver state panel by default
-        self.driver_state_dock.raise_()
-        
-        logger.debug("Dock widgets created")
+
+        # Tabify left-side docks
+        self.tabifyDockWidget(self.camera_viewer_dock, self.advanced_features_dock)
+
+        # Tabify bottom dock
+        self.tabifyDockWidget(self.performance_dock, self.camera_viewer_dock)
+
+        # Show default tabs
+        self.driver_state_dock.raise_()  # Right side
+        self.advanced_features_dock.raise_()  # Left side
+
+        logger.debug("Dock widgets created: 6 docks (Driver/Risk/Alerts/Performance/Cameras/Features)")
     
     def _create_menus(self):
         """Create menu bar with all menus"""
@@ -247,17 +264,27 @@ class SENTINELMainWindow(QMainWindow):
         
         # Analytics Menu
         analytics_menu = menubar.addMenu("&Analytics")
-        
+
+        self.action_analytics_dashboard = QAction("Analytics &Dashboard...", self)
+        self.action_analytics_dashboard.triggered.connect(self._on_analytics_dashboard)
+        analytics_menu.addAction(self.action_analytics_dashboard)
+
+        self.action_incident_review = QAction("&Incident Review...", self)
+        self.action_incident_review.triggered.connect(self._on_incident_review)
+        analytics_menu.addAction(self.action_incident_review)
+
+        analytics_menu.addSeparator()
+
         self.action_trip_report = QAction("&Trip Report...", self)
         self.action_trip_report.triggered.connect(self._on_trip_report)
         analytics_menu.addAction(self.action_trip_report)
-        
+
         self.action_driver_report = QAction("&Driver Report...", self)
         self.action_driver_report.triggered.connect(self._on_driver_report)
         analytics_menu.addAction(self.action_driver_report)
-        
+
         analytics_menu.addSeparator()
-        
+
         self.action_export_data = QAction("&Export Data...", self)
         self.action_export_data.triggered.connect(self._on_export_data)
         analytics_menu.addAction(self.action_export_data)
@@ -589,11 +616,43 @@ class SENTINELMainWindow(QMainWindow):
         logger.info("Opening settings")
         QMessageBox.information(self, "Settings", "Settings dialog will be implemented in future tasks")
     
+    def _on_analytics_dashboard(self):
+        """Handle analytics dashboard action"""
+        from .widgets.analytics_dashboard import AnalyticsDashboard
+        logger.info("Opening analytics dashboard")
+
+        # Create dashboard window
+        dashboard = AnalyticsDashboard()
+        dashboard.setWindowTitle("SENTINEL - Analytics Dashboard")
+        dashboard.resize(1200, 800)
+        dashboard.show()
+
+        # Keep reference to prevent garbage collection
+        if not hasattr(self, '_dashboard_windows'):
+            self._dashboard_windows = []
+        self._dashboard_windows.append(dashboard)
+
+    def _on_incident_review(self):
+        """Handle incident review action"""
+        from .widgets.incident_review_widget import IncidentReviewWidget
+        logger.info("Opening incident review")
+
+        # Create incident review window
+        review_widget = IncidentReviewWidget()
+        review_widget.setWindowTitle("SENTINEL - Incident Review")
+        review_widget.resize(1200, 800)
+        review_widget.show()
+
+        # Keep reference to prevent garbage collection
+        if not hasattr(self, '_review_windows'):
+            self._review_windows = []
+        self._review_windows.append(review_widget)
+
     def _on_trip_report(self):
         """Handle trip report action"""
         logger.info("Generating trip report")
         QMessageBox.information(self, "Trip Report", "Trip report will be implemented in future tasks")
-    
+
     def _on_driver_report(self):
         """Handle driver report action"""
         logger.info("Generating driver report")
@@ -651,12 +710,26 @@ class SENTINELMainWindow(QMainWindow):
         
         # Connect performance_ready signal to performance dock
         self.worker.performance_ready.connect(self._on_performance_ready)
-        
+
+        # Connect frame_ready signal to camera viewer
+        self.worker.frame_ready.connect(self.camera_viewer_dock.update_camera_frames)
+
+        # Connect advanced features signals
+        self.worker.lane_state_ready.connect(self.advanced_features_dock.update_lane_state)
+        self.worker.blind_spot_warning_ready.connect(self.advanced_features_dock.update_blind_spot_warning)
+        self.worker.collision_warning_ready.connect(self.advanced_features_dock.update_collision_warning)
+        self.worker.traffic_signs_ready.connect(self.advanced_features_dock.update_traffic_signs)
+        self.worker.road_condition_ready.connect(self.advanced_features_dock.update_road_condition)
+        self.worker.driver_score_ready.connect(self.advanced_features_dock.update_driver_score)
+        self.worker.trip_stats_ready.connect(self.advanced_features_dock.update_trip_stats)
+        self.worker.location_info_ready.connect(self.advanced_features_dock.update_gps_data)
+        self.worker.speed_violation_ready.connect(self.advanced_features_dock.update_speed_violation)
+
         # Connect error and status signals
         self.worker.error_occurred.connect(self._on_worker_error)
         self.worker.status_changed.connect(self._on_worker_status_changed)
-        
-        logger.info("All worker signals connected")
+
+        logger.info("All worker signals connected (including camera viewer, advanced features, and GPS)")
     
     # Worker signal handler slots
     

@@ -4,7 +4,7 @@ Visualization module for SENTINEL.
 Provides real-time dashboard and scenario playback interfaces.
 """
 
-from src.visualization.backend import (
+from .backend import (
     VisualizationServer,
     create_server,
     serialize_frame_data,
@@ -13,8 +13,10 @@ from src.visualization.backend import (
     PerformanceMonitor,
     create_streaming_manager
 )
+from .camera_overlay import CameraOverlayRenderer
 
 __all__ = [
+    'CameraOverlayRenderer',
     'VisualizationServer',
     'create_server',
     'serialize_frame_data',
