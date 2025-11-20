@@ -101,10 +101,24 @@ class SentinelSystem:
             # Initialize camera manager
             self.logger.info("Initializing Camera Manager...")
             self.camera_manager = CameraManager(self.config)
-            
+
+            # Get calibrations for BEV generator
+            camera_name_to_id = {'interior': 0, 'front_left': 1, 'front_right': 2}
+            calibrations = {}
+            for camera_name, camera_id in camera_name_to_id.items():
+                calib = self.camera_manager.get_calibration(camera_id)
+                if calib is not None:
+                    # Convert CameraCalibration to dict format expected by BEVGenerator
+                    calibrations[camera_name] = {
+                        'intrinsics': calib.intrinsics.to_matrix(),
+                        'extrinsics': calib.extrinsics.to_transform_matrix(),
+                        'homography': calib.homography
+                    }
+
             # Initialize BEV generator
             self.logger.info("Initializing BEV Generator...")
-            self.bev_generator = BEVGenerator(self.config)
+            bev_config = self.config.get('bev', {})
+            self.bev_generator = BEVGenerator(bev_config, calibrations)
             
             # Initialize semantic segmentor
             self.logger.info("Initializing Semantic Segmentor...")
