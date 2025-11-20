@@ -20,6 +20,7 @@ from .widgets.risk_panel import RiskAssessmentPanel
 from .widgets.alerts_panel import AlertsPanel
 from .widgets.performance_dock import PerformanceDockWidget
 from .widgets.camera_viewer_dock import CameraViewerDock
+from .widgets.advanced_features_dock import AdvancedFeaturesDock
 from .themes import ThemeManager
 from .workers import SentinelWorker
 from src.core.config import ConfigManager
@@ -105,18 +106,25 @@ class SENTINELMainWindow(QMainWindow):
         self.camera_viewer_dock = CameraViewerDock()
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.camera_viewer_dock)
 
+        # Advanced Features Dock
+        self.advanced_features_dock = AdvancedFeaturesDock()
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.advanced_features_dock)
+
         # Tabify right-side docks
         self.tabifyDockWidget(self.driver_state_dock, self.risk_dock)
         self.tabifyDockWidget(self.risk_dock, self.alerts_dock)
 
-        # Tabify bottom-left docks
+        # Tabify left-side docks
+        self.tabifyDockWidget(self.camera_viewer_dock, self.advanced_features_dock)
+
+        # Tabify bottom dock
         self.tabifyDockWidget(self.performance_dock, self.camera_viewer_dock)
 
         # Show default tabs
         self.driver_state_dock.raise_()  # Right side
-        self.performance_dock.raise_()  # Bottom
+        self.advanced_features_dock.raise_()  # Left side
 
-        logger.debug("Dock widgets created: 5 docks (Driver/Risk/Alerts/Performance/Cameras)")
+        logger.debug("Dock widgets created: 6 docks (Driver/Risk/Alerts/Performance/Cameras/Features)")
     
     def _create_menus(self):
         """Create menu bar with all menus"""
@@ -664,11 +672,20 @@ class SENTINELMainWindow(QMainWindow):
         # Connect frame_ready signal to camera viewer
         self.worker.frame_ready.connect(self.camera_viewer_dock.update_camera_frames)
 
+        # Connect advanced features signals
+        self.worker.lane_state_ready.connect(self.advanced_features_dock.update_lane_state)
+        self.worker.blind_spot_warning_ready.connect(self.advanced_features_dock.update_blind_spot_warning)
+        self.worker.collision_warning_ready.connect(self.advanced_features_dock.update_collision_warning)
+        self.worker.traffic_signs_ready.connect(self.advanced_features_dock.update_traffic_signs)
+        self.worker.road_condition_ready.connect(self.advanced_features_dock.update_road_condition)
+        self.worker.driver_score_ready.connect(self.advanced_features_dock.update_driver_score)
+        self.worker.trip_stats_ready.connect(self.advanced_features_dock.update_trip_stats)
+
         # Connect error and status signals
         self.worker.error_occurred.connect(self._on_worker_error)
         self.worker.status_changed.connect(self._on_worker_status_changed)
 
-        logger.info("All worker signals connected (including camera viewer)")
+        logger.info("All worker signals connected (including camera viewer and advanced features)")
     
     # Worker signal handler slots
     
