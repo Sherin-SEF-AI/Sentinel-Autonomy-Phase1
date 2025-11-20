@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Requirements Sync & Documentation",
+  "description": "Automatically synchronizes requirements.txt changes with setup.py, generates requirements-dev.txt and requirements-gpu.txt variants, adds inline documentation comments, and organizes dependencies into logical groups",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "requirements.txt"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The requirements.txt file has been modified. Please perform the following tasks:\n\n1. Check if setup.py exists in the project root. If it does, update its install_requires list to match the dependencies in requirements.txt (excluding version specifiers if setup.py uses flexible versioning).\n\n2. Generate or update requirements-dev.txt with the following development dependencies in addition to the base requirements:\n   - pytest>=7.0.0\n   - pytest-cov>=4.0.0\n   - black>=23.0.0\n   - pylint>=2.17.0\n   - mypy>=1.0.0\n\n3. Analyze requirements.txt for CUDA-related dependencies (torch with cuda, tensorflow-gpu, cupy, tensorrt, etc.). If GPU/CUDA dependencies are detected, create or update requirements-gpu.txt with GPU-specific package variants.\n\n4. Add inline comments in requirements.txt explaining what each package is used for in the SENTINEL system. Use the context from tech.md and structure.md to provide accurate descriptions (e.g., \"# Computer vision and image processing\", \"# Deep learning inference\", \"# Gaze estimation model\", etc.).\n\n5. Organize and sort requirements.txt alphabetically within these logical groups:\n   - Core (Python runtime essentials)\n   - Computer Vision (opencv, mediapipe, etc.)\n   - Machine Learning (torch, onnx, tensorrt, etc.)\n   - Backend/API (fastapi, uvicorn, etc.)\n   - Utilities (numpy, pyyaml, etc.)\n   - Visualization (matplotlib, plotly, etc.)\n\nPreserve existing version specifiers and ensure all files are properly formatted. Add group headers as comments to improve readability."
+  }
+}

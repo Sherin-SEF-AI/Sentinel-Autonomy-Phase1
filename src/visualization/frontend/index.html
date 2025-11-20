@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENTINEL - Contextual Safety Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100vw;
+            height: 100vh;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: auto 1fr auto;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        /* Header */
+        #header {
+            grid-column: 1 / -1;
+            background: #2a2a2a;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #header h1 {
+            font-size: 24px;
+            color: #00ff88;
+        }
+
+        #status {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+
+        .status-dot.connected {
+            background: #00ff88;
+        }
+
+        /* Main View Area */
+        #main-view {
+            grid-column: 1;
+            grid-row: 2;
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .view-tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #3a3a3a;
+            padding-bottom: 10px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            background: #3a3a3a;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        .tab.active {
+            background: #00ff88;
+            color: #1a1a1a;
+        }
+
+        .view-content {
+            flex: 1;
+            position: relative;
+            background: #1a1a1a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #bev-canvas, #camera-canvas, #3d-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .view-panel {
+            display: none;
+        }
+
+        .view-panel.active {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Side Panel */
+        #side-panel {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+        }
+
+        .panel-section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .panel-section h2 {
+            font-size: 18px;
+            color: #00ff88;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #3a3a3a;
+            padding-bottom: 8px;
+        }
+
+        /* Driver State */
+        .driver-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .metric {
+            background: #3a3a3a;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .readiness-bar {
+            width: 100%;
+            height: 8px;
+            background: #3a3a3a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .readiness-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4444, #ffaa00, #00ff88);
+            transition: width 0.3s;
+        }
+
+        /* Risk Panel */
+        .risk-item {
+            background: #3a3a3a;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border-left: 4px solid #888;
+        }
+
+        .risk-item.critical {
+            border-left-color: #ff4444;
+        }
+
+        .risk-item.high {
+            border-left-color: #ff8800;
+        }
+
+        .risk-item.medium {
+            border-left-color: #ffaa00;
+        }
+
+        .risk-item.low {
+            border-left-color: #00ff88;
+        }
+
+        .risk-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .risk-type {
+            font-weight: bold;
+        }
+
+        .risk-score {
+            font-size: 18px;
+        }
+
+        .risk-details {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        /* Performance */
+        .perf-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .perf-item {
+            background: #3a3a3a;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .perf-label {
+            color: #888;
+        }
+
+        .perf-value {
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        /* Footer */
+        #footer {
+            grid-column: 1 / -1;
+            background: #2a2a2a;
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Alerts */
+        #alerts-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 300px;
+            z-index: 1000;
+        }
+
+        .alert {
+            background: #2a2a2a;
+            border-left: 4px solid #ff4444;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            animation: slideIn 0.3s;
+        }
+
+        .alert.warning {
+            border-left-color: #ffaa00;
+        }
+
+        .alert.info {
+            border-left-color: #00aaff;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .alert-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .alert-message {
+            font-size: 14px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 18px;
+            color: #888;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <div id="header">
+            <h1>🛡️ SENTINEL</h1>
+            <div id="status">
+                <div class="status-item">
+                    <div class="status-dot" id="connection-status"></div>
+                    <span id="connection-text">Disconnected</span>
+                </div>
+                <div class="status-item">
+                    <span id="fps-display">0 FPS</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main View -->
+        <div id="main-view">
+            <div class="view-tabs">
+                <button class="tab active" data-view="bev">Bird's Eye View</button>
+                <button class="tab" data-view="cameras">Camera Feeds</button>
+                <button class="tab" data-view="3d">3D Scene</button>
+            </div>
+            <div class="view-content">
+                <div id="bev-view" class="view-panel active">
+                    <canvas id="bev-canvas"></canvas>
+                </div>
+                <div id="cameras-view" class="view-panel">
+                    <canvas id="camera-canvas"></canvas>
+                </div>
+                <div id="3d-view" class="view-panel">
+                    <canvas id="3d-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Panel -->
+        <div id="side-panel">
+            <!-- Driver State -->
+            <div class="panel-section">
+                <h2>Driver State</h2>
+                <div class="driver-metrics">
+                    <div class="metric">
+                        <div class="metric-label">Readiness</div>
+                        <div class="metric-value" id="readiness-score">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Attention</div>
+                        <div class="metric-value" id="attention-zone">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Drowsiness</div>
+                        <div class="metric-value" id="drowsiness-score">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Distraction</div>
+                        <div class="metric-value" id="distraction-type">--</div>
+                    </div>
+                </div>
+                <div class="readiness-bar">
+                    <div class="readiness-fill" id="readiness-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Risk Assessment -->
+            <div class="panel-section">
+                <h2>Top Risks</h2>
+                <div id="risks-container">
+                    <div class="loading">No risks detected</div>
+                </div>
+            </div>
+
+            <!-- Performance -->
+            <div class="panel-section">
+                <h2>Performance</h2>
+                <div class="perf-metrics" id="perf-metrics">
+                    <div class="loading">Waiting for data...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div id="footer">
+            <span id="timestamp">Timestamp: --</span>
+            <span>SENTINEL v1.0 | Contextual Safety Intelligence</span>
+        </div>
+    </div>
+
+    <!-- Alerts Container -->
+    <div id="alerts-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

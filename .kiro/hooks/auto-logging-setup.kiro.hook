@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Auto Logging Setup",
+  "description": "When a new module is created in src/, automatically add logging imports, update logging.yaml configuration, add logging statements at key points (function entry/exit, errors, performance sections, state transitions), and ensure log messages follow the standard pattern",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A new Python module has been created or modified in the src/ directory. Please perform the following logging setup tasks:\n\n1. **Add logging setup at the top of the file** (if not already present):\n   ```python\n   import logging\n   logger = logging.getLogger(__name__)\n   ```\n\n2. **Update configs/logging.yaml** to include this module's logger configuration with:\n   - Log level: DEBUG for new/experimental modules, INFO for stable modules\n   - Appropriate log format with timestamp, level, module name, and message\n   - Output handlers: both console and file\n   - Module-specific log file if this is a major component (e.g., src/camera/, src/perception/, src/dms/, src/intelligence/, src/alerts/)\n\n3. **Add logging statements at key points**:\n   - Entry/exit of major functions (use DEBUG level): \"Function_name started/completed: relevant_parameters\"\n   - Error conditions (use ERROR level): \"Operation failed: error_details\"\n   - Performance-critical sections with timing (use DEBUG level): \"Operation completed: duration=X.XXs\"\n   - State transitions (use INFO level): \"State changed: old_state -> new_state\"\n\n4. **Ensure all log messages follow the pattern**: \"Action completed/failed: details\"\n   - Use past tense for completed actions\n   - Include relevant context (parameters, durations, states)\n   - Be concise but informative\n\n5. **Consider the module's role in the system**:\n   - Camera modules: Log frame capture, synchronization, calibration loading\n   - Perception modules: Log inference timing, detection counts, tracking updates\n   - DMS modules: Log driver state changes, attention metrics, drowsiness levels\n   - Intelligence modules: Log risk assessments, TTC calculations, trajectory predictions\n   - Alert modules: Log alert generation, suppression, and dispatch\n\nAnalyze the changed file and implement comprehensive logging that aligns with SENTINEL's real-time performance requirements (30+ FPS, <100ms latency)."
+  }
+}

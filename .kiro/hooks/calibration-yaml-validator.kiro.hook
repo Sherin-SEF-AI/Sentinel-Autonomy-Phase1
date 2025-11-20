@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Calibration YAML Validator",
+  "description": "Validates camera calibration files in configs/calibration/ for correct YAML structure, matrix dimensions, orthogonality, and required fields per camera type",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "configs/calibration/*.yaml",
+      "configs/calibration/*.yml"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A calibration file has been modified in configs/calibration/. Validate the following:\n\n1. **YAML Structure**: Ensure the file matches the CalibrationData schema with proper YAML syntax\n2. **Intrinsics Matrix**: Verify it's a 3x3 matrix with reasonable focal lengths and principal point values\n3. **Distortion Coefficients**: Check the array has valid length (4, 5, 8, or 12 elements) and values are within reasonable ranges (typically -1 to 1)\n4. **Rotation Matrix**: Verify it's a 3x3 matrix, orthogonal (R^T * R = I), and has determinant = 1\n5. **Translation Vector**: Confirm it's a 3x1 vector with reasonable values (typically in meters)\n6. **Homography Matrix**: If present, verify it's a 3x3 matrix\n7. **Numerical Ranges**: Check all values are reasonable (no NaN, Inf, or extreme values)\n8. **Required Fields**: Verify all required fields are present based on camera type:\n   - Interior cameras: intrinsics, distortion, resolution\n   - External cameras: intrinsics, distortion, rotation, translation, resolution\n\nIf any validation fails, create a `configs/calibration/validation_errors.txt` file with:\n- Filename of the invalid calibration file\n- List of all validation errors found with specific details\n- Suggested fixes where applicable\n\nIf validation passes, ensure any existing validation_errors.txt is removed or updated to reflect the passing status."
+  }
+}

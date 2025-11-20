@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  sentinel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sentinel:latest
+    container_name: sentinel-system
+    
+    # GPU access (requires nvidia-docker2)
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
+    
+    # Camera device access
+    devices:
+      - /dev/video0:/dev/video0  # Interior camera
+      - /dev/video1:/dev/video1  # Front-left camera
+      - /dev/video2:/dev/video2  # Front-right camera
+    
+    # Privileged mode for camera access (alternative to devices)
+    # privileged: true
+    
+    # Port mapping for visualization dashboard
+    ports:
+      - "8080:8080"
+    
+    # Volume mounts
+    volumes:
+      # Mount models directory (optional - download once and reuse)
+      - ./models:/app/models
+      
+      # Mount scenarios directory for persistence
+      - ./scenarios:/app/scenarios
+      
+      # Mount logs directory
+      - ./logs:/app/logs
+      
+      # Mount custom configuration (optional)
+      - ./configs:/app/configs
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Network mode
+    network_mode: bridge
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# Optional: Add a separate service for visualization only
+  visualization:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sentinel:latest
+    container_name: sentinel-visualization
+    command: ["python3", "-m", "http.server", "8080", "--directory", "src/visualization/frontend"]
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./src/visualization/frontend:/app/src/visualization/frontend:ro
+    restart: unless-stopped
+    profiles:
+      - visualization-only
+
+networks:
+  default:
+    name: sentinel-network

@@ -1,0 +1,59 @@
+# ============================================================================
+# SENTINEL Safety Intelligence Platform - Core Dependencies
+# ============================================================================
+
+# -----------------------------------------------------------------------------
+# Core Python Utilities
+# -----------------------------------------------------------------------------
+numpy>=1.24.0              # Vectorized numerical operations for performance
+psutil>=5.9.0              # System resource monitoring (CPU, memory, GPU)
+PyYAML>=6.0                # YAML configuration file parsing
+tqdm>=4.66.0               # Progress bars for model loading and processing
+
+# -----------------------------------------------------------------------------
+# Computer Vision & Image Processing
+# -----------------------------------------------------------------------------
+mediapipe>=0.10.0          # Face detection, facial landmarks extraction for DMS
+opencv-python>=4.8.0       # Camera capture, calibration, BEV transformation
+pillow>=10.0.0             # Image I/O and manipulation
+
+# -----------------------------------------------------------------------------
+# Machine Learning & Deep Learning
+# -----------------------------------------------------------------------------
+filterpy>=1.4.5            # Kalman filtering for object tracking and velocity estimation
+onnx>=1.14.0               # Model portability and deployment format
+onnxruntime-gpu>=1.15.0    # GPU-accelerated ONNX model inference
+scikit-learn>=1.3.0        # Hungarian algorithm for multi-view detection fusion
+scipy>=1.11.0              # Scientific computing for trajectory prediction
+torch>=2.0.0               # Deep learning framework for model inference
+torchvision>=0.15.0        # Vision models and transformations
+ultralytics>=8.0.0         # YOLOv8 for multi-view object detection
+
+# -----------------------------------------------------------------------------
+# Web Backend & API
+# -----------------------------------------------------------------------------
+fastapi>=0.103.0           # REST API and WebSocket server for visualization dashboard
+pydantic>=2.0.0            # Data validation and serialization
+python-multipart>=0.0.6    # Multipart form data parsing for file uploads
+uvicorn[standard]>=0.23.0  # ASGI server for FastAPI backend
+websockets>=11.0           # Real-time data streaming to frontend
+
+# -----------------------------------------------------------------------------
+# GUI Framework
+# -----------------------------------------------------------------------------
+PyQt6>=6.5.0               # Desktop GUI application framework
+PyQtGraph>=0.13.0          # High-performance plotting and graphics
+
+# -----------------------------------------------------------------------------
+# Cloud Synchronization & Networking
+# -----------------------------------------------------------------------------
+requests>=2.31.0           # HTTP client for cloud API communication
+urllib3>=2.0.0             # Connection pooling and retry logic
+cryptography>=41.0.0       # Profile encryption and signature verification
+
+# -----------------------------------------------------------------------------
+# Development & Testing
+# -----------------------------------------------------------------------------
+pytest>=7.4.0              # Unit and integration testing framework
+pytest-asyncio>=0.21.0     # Async test support for FastAPI endpoints
+pytest-cov>=4.1.0          # Code coverage reporting

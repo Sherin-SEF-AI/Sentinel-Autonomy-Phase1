@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/*.log
+*.log
+
+# Models (download separately or mount as volume)
+models/*.pth
+models/*.pt
+models/*.onnx
+
+# Scenarios (mount as volume for persistence)
+scenarios/*/
+
+# Test and development
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Temporary files
+*.tmp
+*.bak
+.DS_Store
+
+# Kiro specs
+.kiro/specs/
+
+# Development requirements
+requirements-dev.txt
+
+# Example files (optional, can include if needed)
+# examples/

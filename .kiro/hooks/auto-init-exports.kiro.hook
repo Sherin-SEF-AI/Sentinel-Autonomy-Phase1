@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Auto-update __init__.py exports",
+  "description": "When a new Python file is created in any src/*/ subdirectory, automatically update the __init__.py file in that directory to export the main classes/functions using AST parsing",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A Python file has been created or modified in a src subdirectory. Please:\n\n1. Identify the directory containing the changed file\n2. Scan all .py files in that directory (excluding __init__.py itself)\n3. Use AST parsing to extract:\n   - All class definitions (class names)\n   - Top-level function definitions that don't start with underscore (public functions)\n4. Update or create the __init__.py file in that directory with:\n   - Clean import statements: `from .module_name import ClassName, function_name`\n   - An __all__ list containing all exported items in alphabetical order\n   - Preserve any existing manual imports that aren't auto-generated\n5. Maintain alphabetical ordering of both imports and __all__ entries\n6. Add a comment marker to distinguish auto-generated imports from manual ones\n\nExample output for src/camera/__init__.py:\n```python\n# Auto-generated exports\nfrom .calibration import CalibrationLoader\nfrom .capture import CameraCapture\nfrom .manager import CameraManager\nfrom .sync import TimestampSynchronizer\n\n__all__ = ['CalibrationLoader', 'CameraCapture', 'CameraManager', 'TimestampSynchronizer']\n```\n\nOnly update the __init__.py in the specific directory where files changed, not all directories."
+  }
+}

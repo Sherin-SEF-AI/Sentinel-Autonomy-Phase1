@@ -1,0 +1,676 @@
+# ============================================================================
+# SENTINEL System - Logging Configuration
+# ============================================================================
+# 
+# This file configures logging for all SENTINEL modules with appropriate
+# levels, formats, and handlers for real-time performance monitoring.
+#
+# Log Levels:
+#   DEBUG: Detailed diagnostic information (frame-by-frame, timing)
+#   INFO: General informational messages (state changes, statistics)
+#   WARNING: Warning messages (degraded performance, recoverable errors)
+#   ERROR: Error messages (failures requiring attention)
+#   CRITICAL: Critical failures (system-level issues)
+# ============================================================================
+
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  detailed:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  
+  simple:
+    format: '%(levelname)s - %(name)s - %(message)s'
+  
+  performance:
+    format: '%(asctime)s - %(name)s - PERF - %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S.%f'
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: simple
+    stream: ext://sys.stdout
+  
+  file_all:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: logs/sentinel.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 5
+  
+  file_camera:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: logs/camera.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 3
+  
+  file_perception:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: logs/perception.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 3
+  
+  file_dms:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: logs/dms.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 3
+  
+  file_intelligence:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: logs/intelligence.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 3
+  
+  file_alerts:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: logs/alerts.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 3
+  
+  file_performance:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: performance
+    filename: logs/performance.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 5
+  
+  file_errors:
+    class: logging.handlers.RotatingFileHandler
+    level: ERROR
+    formatter: detailed
+    filename: logs/errors.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 10
+
+loggers:
+  # Camera Management Module
+  CameraCapture-0:
+    level: INFO
+    handlers: [file_camera, file_all]
+    propagate: false
+  
+  CameraCapture-1:
+    level: INFO
+    handlers: [file_camera, file_all]
+    propagate: false
+  
+  CameraCapture-2:
+    level: INFO
+    handlers: [file_camera, file_all]
+    propagate: false
+  
+  TimestampSync:
+    level: INFO
+    handlers: [file_camera, file_all]
+    propagate: false
+  
+  CalibrationLoader:
+    level: INFO
+    handlers: [file_camera, file_all]
+    propagate: false
+  
+  CameraManager:
+    level: INFO
+    handlers: [file_camera, file_all]
+    propagate: false
+  
+  # BEV Generation Module
+  PerspectiveTransformer:
+    level: INFO
+    handlers: [file_perception, file_all]
+    propagate: false
+  
+  ViewStitcher:
+    level: INFO
+    handlers: [file_perception, file_all]
+    propagate: false
+  
+  MaskGenerator:
+    level: INFO
+    handlers: [file_perception, file_all]
+    propagate: false
+  
+  BEVGenerator:
+    level: INFO
+    handlers: [file_perception, file_all]
+    propagate: false
+  
+  # Semantic Segmentation Module
+  SemanticSegmentor:
+    level: INFO
+    handlers: [file_perception, file_all]
+    propagate: false
+  
+  TemporalSmoother:
+    level: INFO
+    handlers: [file_perception, file_all]
+    propagate: false
+  
+  # Object Detection Module
+  src.perception.detection.detector_2d:
+    level: INFO
+    handlers: [file_perception, file_all]
+    propagate: false
+  
+  src.perception.detection.estimator_3d:
+    level: INFO
+    handlers: [file_perception, file_all]
+    propagate: false
+  
+  src.perception.detection.fusion:
+    level: INFO
+    handlers: [file_perception, file_all]
+    propagate: false
+  
+  src.perception.detection.tracker:
+    level: INFO
+    handlers: [file_perception, file_all]
+    propagate: false
+  
+  src.perception.detection.detector:
+    level: INFO
+    handlers: [file_perception, file_all]
+    propagate: false
+  
+  # Driver Monitoring System
+  FaceDetector:
+    level: INFO
+    handlers: [file_dms, file_all]
+    propagate: false
+  
+  src.dms.face:
+    level: INFO
+    handlers: [file_dms, file_all]
+    propagate: false
+  
+  GazeEstimator:
+    level: INFO
+    handlers: [file_dms, file_all]
+    propagate: false
+  
+  HeadPoseEstimator:
+    level: INFO
+    handlers: [file_dms, file_all]
+    propagate: false
+  
+  DrowsinessDetector:
+    level: INFO
+    handlers: [file_dms, file_all]
+    propagate: false
+  
+  DistractionClassifier:
+    level: INFO
+    handlers: [file_dms, file_all]
+    propagate: false
+  
+  DMS:
+    level: INFO
+    handlers: [file_dms, file_all]
+    propagate: false
+  
+  # Contextual Intelligence Module
+  SceneGraphBuilder:
+    level: DEBUG
+    handlers: [file_intelligence, file_all]
+    propagate: false
+  
+  AttentionMapper:
+    level: INFO
+    handlers: [file_intelligence, file_all]
+    propagate: false
+  
+  TTCCalculator:
+    level: INFO
+    handlers: [file_intelligence, file_all]
+    propagate: false
+  
+  TrajectoryPredictor:
+    level: INFO
+    handlers: [file_intelligence, file_all]
+    propagate: false
+  
+  RiskAssessor:
+    level: INFO
+    handlers: [file_intelligence, file_all]
+    propagate: false
+  
+  ContextualIntelligence:
+    level: INFO
+    handlers: [file_intelligence, file_all]
+    propagate: false
+  
+  # Advanced Trajectory Prediction Module
+  src.intelligence.advanced_trajectory:
+    level: DEBUG
+    handlers: [file_intelligence, file_all]
+    propagate: false
+  
+  src.intelligence.trajectory_performance:
+    level: INFO
+    handlers: [file_intelligence, file_all]
+    propagate: false
+  
+  src.intelligence.trajectory_visualization:
+    level: INFO
+    handlers: [file_intelligence, file_all]
+    propagate: false
+  
+  src.intelligence.advanced_risk:
+    level: INFO
+    handlers: [file_intelligence, file_all]
+    propagate: false
+  
+  # Alert System Module
+  src.alerts.generator:
+    level: DEBUG
+    handlers: [file_alerts, file_all]
+    propagate: false
+  
+  AlertGenerator:
+    level: INFO
+    handlers: [file_alerts, file_all]
+    propagate: false
+  
+  AlertSuppressor:
+    level: INFO
+    handlers: [file_alerts, file_all]
+    propagate: false
+  
+  AlertSystem:
+    level: INFO
+    handlers: [file_alerts, file_all]
+    propagate: false
+  
+  # Recording Module
+  src.recording.trigger:
+    level: DEBUG
+    handlers: [file_all]
+    propagate: false
+  
+  src.recording.recorder:
+    level: DEBUG
+    handlers: [file_all]
+    propagate: false
+  
+  src.recording.exporter:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.recording.playback:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.recording.scenario_recorder:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  # Visualization Module
+  VisualizationBackend:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.visualization.backend.server:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.visualization.backend.streaming:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.visualization.backend.data_serializer:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  # Core Infrastructure
+  core.data_structures:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.core.data_structures:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  ConfigManager:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  # System Orchestration
+  sentinel.system:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  sentinel.performance:
+    level: INFO
+    handlers: [file_performance, file_all]
+    propagate: false
+  
+  SentinelSystem:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.main:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  # Package Initialization
+  src:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  # GUI Module
+  src.gui_main:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.main_window:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.live_monitor:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.video_display:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.bev_canvas:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.circular_gauge:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.metric_display:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.status_indicator:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.trend_graph:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.gaze_direction:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.warning_animations:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.driver_state_panel:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.risk_panel:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.alerts_panel:
+    level: DEBUG
+    handlers: [file_all]
+    propagate: false
+  
+  sentinel.gui.alerts_panel:
+    level: DEBUG
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.performance_dock:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.scenarios_dock:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.configuration_dock:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.widgets.vehicle_telemetry_dock:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.themes:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.themes.theme_manager:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.workers:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.gui.workers.sentinel_worker:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  sentinel.worker:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  # Driver Profiling Module
+  src.profiling:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.profiling.face_recognition:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.profiling.metrics_tracker:
+    level: DEBUG
+    handlers: [file_all]
+    propagate: false
+  
+  src.profiling.style_classifier:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.profiling.threshold_adapter:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.profiling.report_generator:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.profiling.profile_manager:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  # CAN Bus Module
+  src.can:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.can.interface:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.can.dbc_parser:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.can.telemetry_reader:
+    level: DEBUG
+    handlers: [file_all]
+    propagate: false
+  
+  src.can.command_sender:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.can.logger:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  # Analytics Module
+  src.analytics:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.analytics.trip_analytics:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.analytics.behavior_report:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.analytics.risk_heatmap:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.analytics.analytics_dashboard:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.analytics.report_exporter:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  # HD Map Module
+  src.maps:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.maps.parser:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.maps.matcher:
+    level: DEBUG
+    handlers: [file_all]
+    propagate: false
+  
+  src.maps.query:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.maps.path_predictor:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+  
+  src.maps.manager:
+    level: INFO
+    handlers: [file_all]
+    propagate: false
+
+root:
+  level: INFO
+  handlers: [console, file_all, file_errors]
+
+# ============================================================================
+# Performance Monitoring Guidelines
+# ============================================================================
+#
+# For real-time performance (30+ FPS, <100ms latency):
+#
+# 1. Use INFO level for production to minimize logging overhead
+# 2. Use DEBUG level only during development/debugging
+# 3. Avoid logging in tight loops (use periodic statistics instead)
+# 4. Log timing information for operations > 5ms
+# 5. Use separate performance log for detailed timing analysis
+#
+# Module-specific timing targets:
+#   - Camera capture: < 5ms per frame
+#   - BEV generation: < 15ms
+#   - Semantic segmentation: < 15ms
+#   - Object detection: < 20ms per camera
+#   - DMS: < 25ms
+#   - Risk assessment: < 10ms
+#   - Alert generation: < 5ms
+#
+# ============================================================================

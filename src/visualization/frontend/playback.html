@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENTINEL - Scenario Playback</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100vw;
+            height: 100vh;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: auto 1fr auto;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        /* Header */
+        #header {
+            grid-column: 1 / -1;
+            background: #2a2a2a;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #header h1 {
+            font-size: 24px;
+            color: #00ff88;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: #3a3a3a;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #4a4a4a;
+        }
+
+        .btn.primary {
+            background: #00ff88;
+            color: #1a1a1a;
+        }
+
+        .btn.primary:hover {
+            background: #00dd77;
+        }
+
+        /* Scenario List */
+        #scenario-list {
+            grid-column: 1;
+            grid-row: 2;
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        #scenario-list h2 {
+            font-size: 18px;
+            color: #00ff88;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #3a3a3a;
+            padding-bottom: 8px;
+        }
+
+        .scenario-item {
+            background: #3a3a3a;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .scenario-item:hover {
+            background: #4a4a4a;
+        }
+
+        .scenario-item.active {
+            background: #00ff88;
+            color: #1a1a1a;
+        }
+
+        .scenario-time {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .scenario-details {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .scenario-item.active .scenario-details {
+            color: #1a1a1a;
+        }
+
+        /* Playback View */
+        #playback-view {
+            grid-column: 2;
+            grid-row: 2;
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .playback-content {
+            flex: 1;
+            background: #1a1a1a;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #playback-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .annotation-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .no-scenario {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 18px;
+            color: #888;
+        }
+
+        /* Playback Controls */
+        #playback-controls {
+            grid-column: 1 / -1;
+            background: #2a2a2a;
+            padding: 15px 20px;
+            border-radius: 8px;
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            background: #3a3a3a;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 18px;
+            transition: background 0.3s;
+        }
+
+        .control-btn:hover {
+            background: #4a4a4a;
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .timeline {
+            flex: 1;
+            height: 40px;
+            background: #3a3a3a;
+            border-radius: 4px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: #00ff88;
+            border-radius: 4px;
+            transition: width 0.1s;
+        }
+
+        .timeline-handle {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            background: #ffffff;
+            border-radius: 50%;
+            cursor: grab;
+        }
+
+        .timeline-handle:active {
+            cursor: grabbing;
+        }
+
+        .time-display {
+            min-width: 120px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 16px;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .speed-btn {
+            padding: 6px 12px;
+            background: #3a3a3a;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .speed-btn.active {
+            background: #00ff88;
+            color: #1a1a1a;
+        }
+
+        .annotation-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 24px;
+            background: #3a3a3a;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #00ff88;
+        }
+
+        .toggle-handle {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #ffffff;
+            border-radius: 50%;
+            transition: left 0.3s;
+        }
+
+        .toggle-switch.active .toggle-handle {
+            left: 28px;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(42, 42, 42, 0.9);
+            padding: 15px;
+            border-radius: 4px;
+            min-width: 250px;
+        }
+
+        .info-item {
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .info-label {
+            color: #888;
+        }
+
+        .info-value {
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <div id="header">
+            <h1>🎬 SENTINEL Playback</h1>
+            <div class="header-actions">
+                <button class="btn" onclick="window.location.href='/'">Live View</button>
+                <button class="btn primary" onclick="loadScenarios()">Refresh</button>
+            </div>
+        </div>
+
+        <!-- Scenario List -->
+        <div id="scenario-list">
+            <h2>Recorded Scenarios</h2>
+            <div id="scenarios-container">
+                <div class="no-scenario">Loading scenarios...</div>
+            </div>
+        </div>
+
+        <!-- Playback View -->
+        <div id="playback-view">
+            <div class="playback-content">
+                <div id="no-scenario-message" class="no-scenario">
+                    Select a scenario to play
+                </div>
+                <canvas id="playback-canvas" style="display: none;"></canvas>
+                <div class="annotation-overlay" id="annotation-overlay"></div>
+                
+                <div class="info-panel" id="info-panel" style="display: none;">
+                    <div class="info-item">
+                        <span class="info-label">Trigger:</span>
+                        <span class="info-value" id="info-trigger">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Duration:</span>
+                        <span class="info-value" id="info-duration">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Detections:</span>
+                        <span class="info-value" id="info-detections">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Max Risk:</span>
+                        <span class="info-value" id="info-risk">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Playback Controls -->
+        <div id="playback-controls">
+            <div class="controls-row">
+                <button class="control-btn" id="play-btn" onclick="togglePlayback()" disabled>▶</button>
+                <button class="control-btn" id="prev-btn" onclick="previousFrame()" disabled>⏮</button>
+                <button class="control-btn" id="next-btn" onclick="nextFrame()" disabled>⏭</button>
+                
+                <div class="timeline" id="timeline" onclick="seekToPosition(event)">
+                    <div class="timeline-progress" id="timeline-progress"></div>
+                    <div class="timeline-handle" id="timeline-handle"></div>
+                </div>
+                
+                <div class="time-display" id="time-display">0.00 / 0.00</div>
+            </div>
+            
+            <div class="controls-row">
+                <div class="speed-control">
+                    <span>Speed:</span>
+                    <button class="speed-btn" onclick="setPlaybackSpeed(0.25)">0.25x</button>
+                    <button class="speed-btn" onclick="setPlaybackSpeed(0.5)">0.5x</button>
+                    <button class="speed-btn active" onclick="setPlaybackSpeed(1.0)">1x</button>
+                    <button class="speed-btn" onclick="setPlaybackSpeed(2.0)">2x</button>
+                </div>
+                
+                <div class="annotation-toggle">
+                    <span>Annotations:</span>
+                    <div class="toggle-switch active" id="annotation-toggle" onclick="toggleAnnotations()">
+                        <div class="toggle-handle"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="playback.js"></script>
+</body>
+</html>

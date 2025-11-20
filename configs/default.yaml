@@ -1,0 +1,251 @@
+system:
+  name: "SENTINEL"
+  version: "1.0"
+  log_level: "INFO"
+
+cameras:
+  interior:
+    device: 0
+    resolution: [640, 480]
+    fps: 30
+    calibration: "configs/calibration/interior.yaml"
+  
+  front_left:
+    device: 1
+    resolution: [1280, 720]
+    fps: 30
+    calibration: "configs/calibration/front_left.yaml"
+  
+  front_right:
+    device: 2
+    resolution: [1280, 720]
+    fps: 30
+    calibration: "configs/calibration/front_right.yaml"
+
+bev:
+  output_size: [640, 640]
+  scale: 0.1  # meters per pixel
+  vehicle_position: [320, 480]
+  blending_method: "multiband"
+  blend_width: 50
+
+models:
+  segmentation:
+    architecture: "BEVFormer-Tiny"
+    weights: "models/bev_segmentation.pth"
+    device: "cuda"
+    precision: "fp16"
+    temporal_smoothing: true
+    smoothing_alpha: 0.7
+  
+  detection:
+    architecture: "YOLOv8"
+    variant: "yolov8m"
+    weights: "models/yolov8m_automotive.pt"
+    confidence_threshold: 0.5
+    nms_threshold: 0.4
+  
+  dms:
+    face_detection: "MediaPipe"
+    gaze_model: "L2CS-Net"
+    gaze_weights: "models/l2cs_gaze.pth"
+    drowsiness_weights: "models/drowsiness_model.pth"
+    distraction_weights: "models/distraction_clf.pth"
+
+fusion:
+  method: "hungarian"
+  iou_threshold_3d: 0.3
+  confidence_weighting: true
+
+tracking:
+  algorithm: "DeepSORT"
+  max_age: 30
+  min_hits: 3
+  iou_threshold: 0.3
+
+risk_assessment:
+  ttc_calculation:
+    method: "constant_velocity"
+    safety_margin: 1.5
+  
+  trajectory_prediction:
+    # Basic trajectory prediction (used by simple predictor)
+    horizon: 3.0
+    dt: 0.1
+    method: "linear"
+    
+    # Advanced trajectory prediction settings
+    enabled: true
+    use_lstm: false  # Enable when LSTM model is trained
+    lstm_model: "models/trajectory_lstm.pth"
+    num_hypotheses: 3
+    uncertainty_estimation: true
+    use_collision_probability: true
+    collision_probability_weight: 0.4
+    
+    # Performance optimization
+    target_time_per_object: 5.0  # ms
+    enable_profiling: false
+    enable_caching: true
+    enable_parallel: true
+  
+  zone_mapping:
+    num_zones: 8
+  
+  base_risk_weights:
+    ttc: 0.4
+    trajectory_conflict: 0.3
+    vulnerability: 0.2
+    relative_speed: 0.1
+  
+  thresholds:
+    hazard_detection: 0.3
+    intervention: 0.7
+    critical: 0.9
+
+alerts:
+  suppression:
+    duplicate_window: 5.0
+    max_simultaneous: 2
+  
+  escalation:
+    critical_threshold: 0.9
+    high_threshold: 0.7
+    medium_threshold: 0.5
+  
+  modalities:
+    visual:
+      display_duration: 3.0
+      flash_rate: 2
+    audio:
+      volume: 0.8
+      critical_sound: "sounds/alarm.wav"
+      warning_sound: "sounds/beep.wav"
+    haptic:
+      enabled: false
+
+recording:
+  enabled: true
+  triggers:
+    risk_threshold: 0.7
+    ttc_threshold: 1.5
+  storage_path: "scenarios/"
+  max_duration: 30.0
+
+visualization:
+  enabled: true
+  port: 8080
+  update_rate: 30
+
+# HD Map Integration (Task 27)
+hd_map:
+  enabled: false  # Disabled by default - enable when map file is available
+  map_file: "maps/city_map.xodr"  # Path to HD map file
+  format: "opendrive"  # 'opendrive' or 'lanelet2'
+  
+  # Map matching configuration
+  matching:
+    gps_accuracy: 5.0  # GPS accuracy in meters for search radius
+    match_threshold: 0.2  # Lateral offset threshold for valid match (meters)
+    heading_weight: 0.4  # Weight for heading in match scoring (0-1)
+    lateral_weight: 0.6  # Weight for lateral offset in match scoring (0-1)
+  
+  # Feature query configuration
+  query:
+    lookahead_distance: 100.0  # Default lookahead distance in meters
+    search_radius: 50.0  # Default search radius for nearby features
+    grid_cell_size: 50.0  # Spatial index grid cell size in meters
+  
+  # Caching configuration
+  cache:
+    enabled: true  # Enable query result caching
+    ttl: 0.5  # Cache time-to-live in seconds
+  
+  # Path prediction configuration
+  path_prediction:
+    horizon: 5  # Number of lanes to predict ahead
+    use_turn_signals: true  # Use turn signals for prediction
+    use_destination: false  # Use destination for A* routing (if available)
+  
+  # Performance monitoring
+  performance:
+    max_query_time: 0.005  # Target max query time in seconds (5ms)
+    log_slow_queries: true  # Log queries exceeding target time
+  
+  # GUI integration
+  gui:
+    show_map_overlay: false  # Show map overlay on BEV canvas by default
+    show_map_dock: true  # Show map view dock widget
+    highlight_current_lane: true  # Highlight current lane in map view
+
+# CAN Bus Integration (Task 28)
+can_bus:
+  enabled: false  # Disabled by default - enable when CAN hardware is available
+  interface: "socketcan"  # Interface type (socketcan for Linux)
+  channel: "can0"  # CAN interface name (e.g., can0, vcan0)
+  dbc_file: "configs/vehicle.dbc"  # DBC file path for message definitions
+  enable_control: false  # Enable sending control commands (SAFETY: keep disabled unless in controlled test)
+  log_traffic: true  # Log all CAN messages to file
+  log_file: "logs/can_traffic.log"  # CAN log file path
+  
+  # Message IDs (override defaults if needed)
+  message_ids:
+    speed: 0x100  # 256
+    steering: 0x200  # 512
+    brake: 0x300  # 768
+    throttle: 0x400  # 1024
+    gear: 0x500  # 1280
+    turn_signal: 0x600  # 1536
+  
+  # Command IDs
+  command_ids:
+    brake: 0x700  # 1792
+    steering: 0x800  # 2048
+  
+  # Telemetry reader settings
+  telemetry:
+    update_rate: 100.0  # Hz
+  
+  # Command sender settings
+  commands:
+    max_brake: 1.0  # Maximum brake command (0-1)
+    max_steering_angle: 0.5  # Maximum steering angle in radians (~28 degrees)
+    watchdog_timeout: 0.5  # Watchdog timeout in seconds
+
+# =============================================================================
+# Cloud Synchronization Configuration
+# =============================================================================
+cloud:
+  # Enable/disable cloud synchronization
+  enabled: false
+  
+  # API connection settings
+  api_url: "https://api.sentinel-fleet.com"
+  api_key: ""  # Set your API key here
+  vehicle_id: "vehicle_001"
+  fleet_id: "fleet_alpha"
+  
+  # Connection settings
+  timeout: 30.0  # Request timeout in seconds
+  max_retries: 3  # Maximum retry attempts
+  rate_limit: 10.0  # Maximum requests per second
+  
+  # Sync intervals
+  trip_upload_interval: 300  # Upload trips every 5 minutes
+  model_check_interval: 86400  # Check for model updates every 24 hours
+  connectivity_check_interval: 30  # Check connectivity every 30 seconds
+  
+  # Upload settings
+  auto_install_models: true  # Automatically install model updates
+  compression_quality: 23  # Video compression quality (18-28, lower = better)
+  
+  # Data sharing consent
+  upload_trips: false  # Upload trip summaries (anonymized)
+  upload_scenarios: false  # Upload high-risk scenarios
+  sync_profiles: false  # Sync driver profiles across vehicles
+  
+  # Storage paths
+  trip_queue_file: "data/trip_queue.json"
+  scenarios_dir: "scenarios"
+  profiles_dir: "profiles"
+  models_dir: "models"

@@ -1,0 +1,15 @@
+intrinsics:
+  fx: 800.0
+  fy: 800.0
+  cx: 640.0
+  cy: 360.0
+  distortion: [0.0, 0.0, 0.0, 0.0, 0.0]
+
+extrinsics:
+  translation: [2.0, 0.5, 1.0]  # meters from vehicle origin
+  rotation: [0.0, 0.0, -0.785]  # radians (roll, pitch, yaw) - 45 degrees left
+
+homography:
+  matrix: [[1.0, 0.0, 0.0],
+           [0.0, 1.0, 0.0],
+           [0.0, 0.0, 1.0]]
