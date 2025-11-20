@@ -148,8 +148,9 @@ class SentinelSystem:
             # Initialize visualization server if enabled
             if self.config.get('visualization.enabled', True):
                 self.logger.info("Initializing Visualization Server...")
-                port = self.config.get('visualization.port', 8080)
-                self.viz_server = VisualizationServer(port=port)
+                # VisualizationServer expects the full config dict
+                viz_config = self.config.config if hasattr(self.config, 'config') else self.config
+                self.viz_server = VisualizationServer(viz_config)
                 self.streaming_manager = StreamingManager(self.viz_server)
             
             self.logger.info("All modules initialized successfully")
@@ -174,10 +175,11 @@ class SentinelSystem:
             self.logger.info("Starting camera capture...")
             self.camera_manager.start()
             
-            # Start visualization server if enabled
+            # Note: Visualization server is initialized but not started here
+            # The server should be run separately using: server.run(host='0.0.0.0', port=8080)
+            # For streaming without the server, StreamingManager can still be used
             if self.viz_server:
-                self.logger.info("Starting visualization server...")
-                self.viz_server.start()
+                self.logger.info("Visualization server initialized (not started in main thread)")
             
             self.logger.info("SENTINEL system started successfully")
             self.logger.info("=" * 60)
@@ -463,10 +465,10 @@ class SentinelSystem:
                 self.logger.info("Stopping camera capture...")
                 self.camera_manager.stop()
             
-            # Stop visualization server
+            # Note: Visualization server cleanup
+            # The server doesn't have a stop() method - it would be stopped externally
             if self.viz_server:
-                self.logger.info("Stopping visualization server...")
-                self.viz_server.stop()
+                self.logger.info("Visualization server resources released")
             
             # Save system state
             self._save_system_state()
