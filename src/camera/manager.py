@@ -44,7 +44,8 @@ class CameraManager(ICameraManager):
         self.is_running = False
         self.required_cameras = set([0, 1, 2])  # All cameras required for full operation
         self.degraded_mode = False
-        
+        self.simulation_mode = False
+
         # Statistics
         self.frame_count = 0
         self.failed_sync_count = 0
@@ -85,9 +86,11 @@ class CameraManager(ICameraManager):
         
         # Check if we have minimum required cameras
         if len(self.captures) == 0:
-            raise RuntimeError("No cameras could be initialized")
-        
-        if len(self.captures) < len(self.required_cameras):
+            self.logger.warning("No cameras could be initialized - running in SIMULATION mode")
+            self.logger.warning("The system will generate mock camera frames for testing")
+            self.degraded_mode = True
+            self.simulation_mode = True
+        elif len(self.captures) < len(self.required_cameras):
             self.logger.warning(
                 f"Running in degraded mode: {len(self.captures)}/{len(self.required_cameras)} cameras active"
             )
@@ -113,24 +116,41 @@ class CameraManager(ICameraManager):
     def get_frame_bundle(self) -> Optional[CameraBundle]:
         """
         Get synchronized frame bundle.
-        
+
         Returns:
             CameraBundle with synchronized frames or None if synchronization fails
         """
         if not self.is_running:
             return None
-        
+
+        # If in simulation mode (no cameras), generate mock frames
+        if self.simulation_mode:
+            import time
+            timestamp = time.time()
+            # Generate simple gradient frames for testing
+            interior = self._create_mock_frame((480, 640, 3), self.frame_count)
+            front_left = self._create_mock_frame((720, 1280, 3), self.frame_count + 1)
+            front_right = self._create_mock_frame((720, 1280, 3), self.frame_count + 2)
+
+            self.frame_count += 1
+            return CameraBundle(
+                timestamp=timestamp,
+                interior=interior,
+                front_left=front_left,
+                front_right=front_right
+            )
+
         # Collect latest frames from all cameras
         frames = {}
         for camera_id, capture in self.captures.items():
             frame_data = capture.get_latest_frame()
             if frame_data is not None:
                 frames[camera_id] = frame_data
-        
+
         # Check if we have frames from all active cameras
         if len(frames) != len(self.captures):
             return None
-        
+
         # Synchronize frames
         sync_result = self.sync.synchronize(frames)
         if sync_result is None:
@@ -138,12 +158,12 @@ class CameraManager(ICameraManager):
             if self.failed_sync_count % 10 == 0:
                 self.logger.warning(f"Frame synchronization failed ({self.failed_sync_count} times)")
             return None
-        
+
         synchronized_frames, timestamp = sync_result
-        
+
         # Check for camera health and attempt reconnection if needed
         self._check_and_reconnect_cameras()
-        
+
         # Create CameraBundle
         try:
             bundle = self._create_camera_bundle(synchronized_frames, timestamp)
@@ -211,7 +231,31 @@ class CameraManager(ICameraManager):
     def _create_black_frame(self, shape: tuple) -> np.ndarray:
         """Create a black frame of specified shape."""
         return np.zeros(shape, dtype=np.uint8)
-    
+
+    def _create_mock_frame(self, shape: tuple, seed: int) -> np.ndarray:
+        """
+        Create a simulated camera frame for testing.
+
+        Args:
+            shape: Frame shape (height, width, channels)
+            seed: Seed value for variation
+
+        Returns:
+            Simulated frame with gradient pattern
+        """
+        h, w, c = shape
+        # Create a simple animated gradient pattern
+        frame = np.zeros(shape, dtype=np.uint8)
+
+        # Create horizontal gradient with animation
+        for y in range(h):
+            intensity = int((y / h) * 255)
+            # Add some animation based on seed
+            intensity = (intensity + seed * 2) % 256
+            frame[y, :] = intensity
+
+        return frame
+
     def _check_and_reconnect_cameras(self) -> None:
         """Check camera health and attempt reconnection for failed cameras."""
         # Check each camera
