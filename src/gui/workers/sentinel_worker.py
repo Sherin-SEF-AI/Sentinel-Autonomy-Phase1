@@ -74,6 +74,10 @@ class SentinelWorker(QThread):
     parking_spaces_ready = pyqtSignal(list)  # List[ParkingSpace]
     driver_score_ready = pyqtSignal(object)  # DriverScore
     trip_stats_ready = pyqtSignal(object)  # TripStats
+    interactions_ready = pyqtSignal(list)  # List[PredictedInteraction]
+    gps_data_ready = pyqtSignal(object)  # GPSData
+    location_info_ready = pyqtSignal(object)  # Dict with location info
+    speed_violation_ready = pyqtSignal(object)  # Speed violation dict or None
     
     def __init__(self, config: ConfigManager, parent=None):
         """
@@ -387,6 +391,14 @@ class SentinelWorker(QThread):
                     self.driver_score_ready.emit(features_outputs['driver_score'])
                 if features_outputs.get('trip_stats'):
                     self.trip_stats_ready.emit(features_outputs['trip_stats'])
+                if features_outputs.get('interactions'):
+                    self.interactions_ready.emit(features_outputs['interactions'])
+                if features_outputs.get('gps_data'):
+                    self.gps_data_ready.emit(features_outputs['gps_data'])
+                if features_outputs.get('location_info'):
+                    self.location_info_ready.emit(features_outputs['location_info'])
+                if features_outputs.get('speed_violation') is not None:
+                    self.speed_violation_ready.emit(features_outputs['speed_violation'])
 
                 # Process frame for recording (automatic trigger-based recording)
                 self.recorder.process_frame(

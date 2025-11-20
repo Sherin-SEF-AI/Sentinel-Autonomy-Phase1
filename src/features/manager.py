@@ -20,6 +20,8 @@ from src.perception.road_analysis import RoadSurfaceAnalyzer
 from src.perception.parking import ParkingAssistant
 from src.analytics.trip_tracker import TripTracker
 from src.analytics.driver_scoring import DriverScoringSystem
+from src.intelligence.interaction_predictor import MultiObjectInteractionPredictor
+from src.sensors.gps_tracker import GPSTracker
 
 
 class FeaturesManager:
@@ -85,6 +87,14 @@ class FeaturesManager:
             features_config.get('driver_scoring', {})
         )
 
+        self.interaction_predictor = MultiObjectInteractionPredictor(
+            features_config.get('interaction_prediction', {})
+        )
+
+        self.gps_tracker = GPSTracker(
+            features_config.get('gps', {})
+        )
+
         # Feature enable flags
         self.enable_lane_detection = lane_config.get('enabled', True)
         self.enable_blind_spot = features_config.get('blind_spot', {}).get('enabled', True)
@@ -94,6 +104,8 @@ class FeaturesManager:
         self.enable_parking = features_config.get('parking', {}).get('enabled', False)  # Off by default
         self.enable_trip_tracking = features_config.get('trip_analytics', {}).get('enabled', True)
         self.enable_driver_scoring = features_config.get('driver_scoring', {}).get('enabled', True)
+        self.enable_interaction_prediction = features_config.get('interaction_prediction', {}).get('enabled', True)
+        self.enable_gps = features_config.get('gps', {}).get('enabled', False)  # Off by default (requires hardware)
 
         self.logger.info("Features manager initialized")
         self.logger.info(f"  Lane detection: {self.enable_lane_detection}")
@@ -104,6 +116,8 @@ class FeaturesManager:
         self.logger.info(f"  Parking assist: {self.enable_parking}")
         self.logger.info(f"  Trip tracking: {self.enable_trip_tracking}")
         self.logger.info(f"  Driver scoring: {self.enable_driver_scoring}")
+        self.logger.info(f"  Interaction prediction: {self.enable_interaction_prediction}")
+        self.logger.info(f"  GPS tracking: {self.enable_gps}")
 
     def process_frame(
         self,
@@ -203,6 +217,36 @@ class FeaturesManager:
         else:
             outputs['driver_score'] = None
 
+        # Interaction prediction
+        if self.enable_interaction_prediction:
+            ego_speed = vehicle_telemetry.speed if vehicle_telemetry else 0.0
+            interactions = self.interaction_predictor.predict_interactions(
+                detections_3d,
+                ego_speed
+            )
+            outputs['interactions'] = interactions
+        else:
+            outputs['interactions'] = []
+
+        # GPS tracking and speed limit
+        if self.enable_gps:
+            gps_data = self.gps_tracker.update()
+            location_info = self.gps_tracker.get_location_info()
+            outputs['gps_data'] = gps_data
+            outputs['location_info'] = location_info
+
+            # Check for speed violations
+            if vehicle_telemetry:
+                speed_kmh = vehicle_telemetry.speed * 3.6
+                violation = self.gps_tracker.check_speed_violation(speed_kmh)
+                outputs['speed_violation'] = violation
+            else:
+                outputs['speed_violation'] = None
+        else:
+            outputs['gps_data'] = None
+            outputs['location_info'] = None
+            outputs['speed_violation'] = None
+
         # Trip analytics update
         if self.enable_trip_tracking and self.trip_tracker.is_active:
             # Collect events for trip tracking
@@ -213,6 +257,8 @@ class FeaturesManager:
                 events['collision_warning'] = True
             if outputs.get('blind_spot_warning') and outputs['blind_spot_warning'].warning_active:
                 events['blind_spot_warning'] = True
+            if outputs.get('speed_violation'):
+                events['speed_violation'] = True
 
             self.trip_tracker.update(vehicle_telemetry, driver_state, events)
             outputs['trip_stats'] = self.trip_tracker.get_current_stats()

@@ -264,17 +264,27 @@ class SENTINELMainWindow(QMainWindow):
         
         # Analytics Menu
         analytics_menu = menubar.addMenu("&Analytics")
-        
+
+        self.action_analytics_dashboard = QAction("Analytics &Dashboard...", self)
+        self.action_analytics_dashboard.triggered.connect(self._on_analytics_dashboard)
+        analytics_menu.addAction(self.action_analytics_dashboard)
+
+        self.action_incident_review = QAction("&Incident Review...", self)
+        self.action_incident_review.triggered.connect(self._on_incident_review)
+        analytics_menu.addAction(self.action_incident_review)
+
+        analytics_menu.addSeparator()
+
         self.action_trip_report = QAction("&Trip Report...", self)
         self.action_trip_report.triggered.connect(self._on_trip_report)
         analytics_menu.addAction(self.action_trip_report)
-        
+
         self.action_driver_report = QAction("&Driver Report...", self)
         self.action_driver_report.triggered.connect(self._on_driver_report)
         analytics_menu.addAction(self.action_driver_report)
-        
+
         analytics_menu.addSeparator()
-        
+
         self.action_export_data = QAction("&Export Data...", self)
         self.action_export_data.triggered.connect(self._on_export_data)
         analytics_menu.addAction(self.action_export_data)
@@ -606,11 +616,43 @@ class SENTINELMainWindow(QMainWindow):
         logger.info("Opening settings")
         QMessageBox.information(self, "Settings", "Settings dialog will be implemented in future tasks")
     
+    def _on_analytics_dashboard(self):
+        """Handle analytics dashboard action"""
+        from .widgets.analytics_dashboard import AnalyticsDashboard
+        logger.info("Opening analytics dashboard")
+
+        # Create dashboard window
+        dashboard = AnalyticsDashboard()
+        dashboard.setWindowTitle("SENTINEL - Analytics Dashboard")
+        dashboard.resize(1200, 800)
+        dashboard.show()
+
+        # Keep reference to prevent garbage collection
+        if not hasattr(self, '_dashboard_windows'):
+            self._dashboard_windows = []
+        self._dashboard_windows.append(dashboard)
+
+    def _on_incident_review(self):
+        """Handle incident review action"""
+        from .widgets.incident_review_widget import IncidentReviewWidget
+        logger.info("Opening incident review")
+
+        # Create incident review window
+        review_widget = IncidentReviewWidget()
+        review_widget.setWindowTitle("SENTINEL - Incident Review")
+        review_widget.resize(1200, 800)
+        review_widget.show()
+
+        # Keep reference to prevent garbage collection
+        if not hasattr(self, '_review_windows'):
+            self._review_windows = []
+        self._review_windows.append(review_widget)
+
     def _on_trip_report(self):
         """Handle trip report action"""
         logger.info("Generating trip report")
         QMessageBox.information(self, "Trip Report", "Trip report will be implemented in future tasks")
-    
+
     def _on_driver_report(self):
         """Handle driver report action"""
         logger.info("Generating driver report")
@@ -680,12 +722,14 @@ class SENTINELMainWindow(QMainWindow):
         self.worker.road_condition_ready.connect(self.advanced_features_dock.update_road_condition)
         self.worker.driver_score_ready.connect(self.advanced_features_dock.update_driver_score)
         self.worker.trip_stats_ready.connect(self.advanced_features_dock.update_trip_stats)
+        self.worker.location_info_ready.connect(self.advanced_features_dock.update_gps_data)
+        self.worker.speed_violation_ready.connect(self.advanced_features_dock.update_speed_violation)
 
         # Connect error and status signals
         self.worker.error_occurred.connect(self._on_worker_error)
         self.worker.status_changed.connect(self._on_worker_status_changed)
 
-        logger.info("All worker signals connected (including camera viewer and advanced features)")
+        logger.info("All worker signals connected (including camera viewer, advanced features, and GPS)")
     
     # Worker signal handler slots
     

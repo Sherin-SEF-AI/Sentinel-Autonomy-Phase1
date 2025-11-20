@@ -15,6 +15,7 @@ from src.core.data_structures import (
 from .safety_indicators import SafetyIndicatorsWidget
 from .driver_score_widget import DriverScoreWidget
 from .trip_stats_widget import TripStatsWidget
+from .gps_widget import GPSWidget
 
 
 class AdvancedFeaturesDock(QDockWidget):
@@ -74,6 +75,13 @@ class AdvancedFeaturesDock(QDockWidget):
         scroll_signs.setWidget(self.signs_widget)
         scroll_signs.setWidgetResizable(True)
         self.tab_widget.addTab(scroll_signs, "🚦 Signs")
+
+        # GPS tab
+        self.gps_widget = GPSWidget()
+        scroll_gps = QScrollArea()
+        scroll_gps.setWidget(self.gps_widget)
+        scroll_gps.setWidgetResizable(True)
+        self.tab_widget.addTab(scroll_gps, "🌐 GPS")
 
         layout.addWidget(self.tab_widget)
 
@@ -312,3 +320,14 @@ class AdvancedFeaturesDock(QDockWidget):
 
         self.signs_list_label.setText("\n".join(signs_text))
         self.signs_list_label.setStyleSheet("color: #fff;")
+
+    # Signal handlers for GPS
+    @pyqtSlot(object, name="updateGPSData")
+    def update_gps_data(self, location_info: dict):
+        """Update GPS data in GPS tab."""
+        self.gps_widget.update_gps_data(location_info)
+
+    @pyqtSlot(object, name="updateSpeedViolation")
+    def update_speed_violation(self, violation: dict):
+        """Update speed violation warning in GPS tab."""
+        self.gps_widget.update_speed_violation(violation)
