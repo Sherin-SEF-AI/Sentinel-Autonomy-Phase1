@@ -1,4 +1,5 @@
 # SENTINEL - Contextual Safety Intelligence Platform
+<img width="1912" height="1042" alt="image" src="https://github.com/user-attachments/assets/eab827a1-a2b7-4ae6-b735-16029a14e530" />
 
 SENTINEL is a real-time contextual safety intelligence platform for vehicles that prevents accidents by understanding both the environment and driver state in real-time.
 
