@@ -14,6 +14,8 @@ from .ttc import TTCCalculator
 from .trajectory import TrajectoryPredictor
 from .risk import RiskCalculator
 from .prioritization import RiskPrioritizer
+from .advanced_trajectory import AdvancedTrajectoryPredictor
+from .advanced_risk import AdvancedRiskAssessor
 
 
 class ContextualIntelligence(IContextualIntelligence):
@@ -30,19 +32,35 @@ class ContextualIntelligence(IContextualIntelligence):
             config: Configuration dictionary with risk_assessment settings
         """
         self.logger = logging.getLogger(__name__)
-        
+
         # Extract risk assessment config
         risk_config = config.get('risk_assessment', {})
-        
+        trajectory_config = risk_config.get('trajectory_prediction', {})
+
+        # Check if advanced features are enabled
+        self.use_advanced_prediction = trajectory_config.get('enabled', True)
+
         # Initialize components
         self.scene_graph_builder = SceneGraphBuilder()
         self.attention_mapper = AttentionMapper(risk_config.get('zone_mapping', {}))
         self.ttc_calculator = TTCCalculator(risk_config.get('ttc_calculation', {}))
-        self.trajectory_predictor = TrajectoryPredictor(risk_config.get('trajectory_prediction', {}))
+
+        # Use advanced or basic trajectory predictor based on configuration
+        if self.use_advanced_prediction:
+            self.logger.info("Initializing ADVANCED trajectory predictor")
+            self.trajectory_predictor = AdvancedTrajectoryPredictor(trajectory_config)
+            self.advanced_risk_assessor = AdvancedRiskAssessor(risk_config)
+            self.use_advanced_risk = True
+        else:
+            self.logger.info("Initializing basic trajectory predictor")
+            self.trajectory_predictor = TrajectoryPredictor(trajectory_config)
+            self.use_advanced_risk = False
+
         self.risk_calculator = RiskCalculator(risk_config)
         self.risk_prioritizer = RiskPrioritizer()
-        
-        self.logger.info("Contextual Intelligence Engine initialized")
+
+        mode = "ADVANCED" if self.use_advanced_prediction else "BASIC"
+        self.logger.info(f"Contextual Intelligence Engine initialized in {mode} mode")
     
     def assess(
         self,
@@ -96,52 +114,81 @@ class ContextualIntelligence(IContextualIntelligence):
         
         # Extract ego vehicle speed from telemetry
         ego_speed = vehicle_telemetry.speed if vehicle_telemetry else 0.0
-        
+
         # Process each detection to create hazards and assess risks
         hazards = []
         risks = []
-        
-        for detection in detections:
-            # Calculate TTC with ego vehicle speed
-            ttc = self.ttc_calculator.calculate_ttc(detection, ego_speed)
-            
-            # Predict trajectory
-            trajectory = self.trajectory_predictor.predict(detection)
-            
-            # Determine spatial zone
-            zone = self.attention_mapper.get_zone_for_position(detection.bbox_3d[:3])
-            
-            # Calculate trajectory conflict with vehicle path
-            # (Simplified: assume vehicle stays stationary or moves forward)
-            vehicle_trajectory = [(0, 0, 0)] * len(trajectory)  # Vehicle at origin
-            trajectory_conflict = self.trajectory_predictor.calculate_trajectory_conflict_score(
-                trajectory, vehicle_trajectory
-            )
-            
-            # Calculate base risk
-            base_risk = self.risk_calculator.calculate_base_risk(
-                detection, ttc, trajectory_conflict, zone
-            )
-            
-            # Create hazard
-            hazard = self.risk_calculator.create_hazard(
-                detection, ttc, trajectory, zone, base_risk
-            )
-            hazards.append(hazard)
-            
-            # Check if driver is aware of this hazard
-            driver_aware = self.attention_mapper.is_looking_at_zone(attention_map, zone)
-            
-            # Calculate contextual risk
-            contextual_score = self.risk_calculator.calculate_contextual_risk(
-                base_risk, driver_aware, driver_state.readiness_score
-            )
-            
-            # Create risk object
-            risk = self.risk_calculator.create_risk(
-                hazard, contextual_score, driver_aware
-            )
-            risks.append(risk)
+
+        # Use advanced risk assessment if enabled
+        if self.use_advanced_risk and len(detections) > 0:
+            # Update trajectory history for better predictions
+            self.trajectory_predictor.update_history(detections)
+
+            # Use advanced risk assessor for enhanced hazard detection
+            hazards, object_trajectories, collision_probs = \
+                self.advanced_risk_assessor.assess_hazards_with_trajectories(
+                    detections, ego_trajectory=None, driver_state=driver_state
+                )
+
+            # Create risks from hazards
+            for hazard in hazards:
+                # Check if driver is aware of this hazard
+                driver_aware = self.attention_mapper.is_looking_at_zone(attention_map, hazard.zone)
+
+                # Calculate contextual risk
+                contextual_score = self.risk_calculator.calculate_contextual_risk(
+                    hazard.base_risk, driver_aware, driver_state.readiness_score
+                )
+
+                # Create risk object
+                risk = self.risk_calculator.create_risk(
+                    hazard, contextual_score, driver_aware
+                )
+                risks.append(risk)
+
+        else:
+            # Use basic risk assessment
+            for detection in detections:
+                # Calculate TTC with ego vehicle speed
+                ttc = self.ttc_calculator.calculate_ttc(detection, ego_speed)
+
+                # Predict trajectory
+                trajectory = self.trajectory_predictor.predict(detection)
+
+                # Determine spatial zone
+                zone = self.attention_mapper.get_zone_for_position(detection.bbox_3d[:3])
+
+                # Calculate trajectory conflict with vehicle path
+                # (Simplified: assume vehicle stays stationary or moves forward)
+                vehicle_trajectory = [(0, 0, 0)] * len(trajectory)  # Vehicle at origin
+                trajectory_conflict = self.trajectory_predictor.calculate_trajectory_conflict_score(
+                    trajectory, vehicle_trajectory
+                )
+
+                # Calculate base risk
+                base_risk = self.risk_calculator.calculate_base_risk(
+                    detection, ttc, trajectory_conflict, zone
+                )
+
+                # Create hazard
+                hazard = self.risk_calculator.create_hazard(
+                    detection, ttc, trajectory, zone, base_risk
+                )
+                hazards.append(hazard)
+
+                # Check if driver is aware of this hazard
+                driver_aware = self.attention_mapper.is_looking_at_zone(attention_map, zone)
+
+                # Calculate contextual risk
+                contextual_score = self.risk_calculator.calculate_contextual_risk(
+                    base_risk, driver_aware, driver_state.readiness_score
+                )
+
+                # Create risk object
+                risk = self.risk_calculator.create_risk(
+                    hazard, contextual_score, driver_aware
+                )
+                risks.append(risk)
         
         # Filter risks by threshold
         significant_risks = self.risk_prioritizer.filter_by_threshold(
