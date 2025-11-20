@@ -64,11 +64,12 @@ class SemanticSegmentor(ISemanticSegmentor):
         self.error_count = 0
         self.max_errors = 3
         self.last_valid_output: Optional[SegmentationOutput] = None
-        
+
         # Performance tracking
         self.inference_times = []
         self.target_inference_time = 0.015  # 15ms target
-        
+        self._slow_inference_count = 0  # Track slow inferences for rate-limited warnings
+
         logger.info("SemanticSegmentor initialized")
     
     def segment(self, bev_image: np.ndarray) -> SegmentationOutput:
@@ -119,17 +120,22 @@ class SemanticSegmentor(ISemanticSegmentor):
             # Track performance
             inference_time = time.perf_counter() - start_time
             self.inference_times.append(inference_time)
-            
+
             # Keep only last 100 measurements
             if len(self.inference_times) > 100:
                 self.inference_times.pop(0)
-            
-            # Log performance warning if too slow
+
+            # Log performance warning if too slow (rate-limited to avoid log spam)
             if inference_time > self.target_inference_time:
-                logger.warning(
-                    f"Segmentation inference time {inference_time*1000:.1f}ms "
-                    f"exceeds target {self.target_inference_time*1000:.1f}ms"
-                )
+                self._slow_inference_count += 1
+                # Only log every 100 slow inferences
+                if self._slow_inference_count % 100 == 1:
+                    avg_time = np.mean(self.inference_times) if self.inference_times else inference_time
+                    logger.warning(
+                        f"Segmentation inference time {inference_time*1000:.1f}ms "
+                        f"exceeds target {self.target_inference_time*1000:.1f}ms "
+                        f"(avg: {avg_time*1000:.1f}ms, count: {self._slow_inference_count})"
+                    )
             
             return output
             

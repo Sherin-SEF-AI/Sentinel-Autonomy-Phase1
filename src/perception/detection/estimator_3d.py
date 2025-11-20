@@ -13,7 +13,7 @@ class Estimator3D:
     def __init__(self, calibration_data: Dict):
         """
         Initialize 3D estimator.
-        
+
         Args:
             calibration_data: Dictionary mapping camera_id to calibration parameters:
                 - intrinsics: Camera intrinsic matrix (3x3)
@@ -23,7 +23,10 @@ class Estimator3D:
         """
         self.logger = logging.getLogger(__name__)
         self.calibration_data = calibration_data
-        
+
+        # Track cameras we've already warned about (to avoid log spam)
+        self._warned_cameras = set()
+
         # Default object dimensions (w, h, l) in meters for each class
         self.default_dimensions = {
             'vehicle': (1.8, 1.5, 4.5),
@@ -32,7 +35,7 @@ class Estimator3D:
             'traffic_light': (0.3, 0.8, 0.3),
             'traffic_sign': (0.1, 0.6, 0.6)
         }
-        
+
         self.logger.info("Estimator3D initialized")
     
     def estimate(self, detection_2d: Detection2D) -> Optional[Detection3D]:
@@ -47,9 +50,13 @@ class Estimator3D:
         """
         try:
             camera_id = detection_2d.camera_id
-            
+
             if camera_id not in self.calibration_data:
-                self.logger.warning(f"No calibration data for camera {camera_id}")
+                # Only warn once per camera to avoid log spam
+                if camera_id not in self._warned_cameras:
+                    self.logger.warning(f"No calibration data for camera {camera_id} - "
+                                      f"3D estimation disabled for this camera")
+                    self._warned_cameras.add(camera_id)
                 return None
             
             calib = self.calibration_data[camera_id]
