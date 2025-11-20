@@ -499,11 +499,11 @@ class ResourceUsageWidget(QWidget):
             max_value=self.gpu_max_mb,
             title="GPU Memory (MB)"
         )
-        self.gpu_gauge.set_color_zones([
-            (0, self.gpu_max_mb * 0.7, '#00ff00'),      # Green: 0-70%
-            (self.gpu_max_mb * 0.7, self.gpu_max_mb * 0.85, '#ffaa00'),  # Yellow: 70-85%
-            (self.gpu_max_mb * 0.85, self.gpu_max_mb, '#ff0000')  # Red: 85-100%
-        ])
+        self.gpu_gauge.set_color_zones(
+            green_zone=(0, self.gpu_max_mb * 0.7),      # Green: 0-70%
+            yellow_zone=(self.gpu_max_mb * 0.7, self.gpu_max_mb * 0.85),  # Yellow: 70-85%
+            red_zone=(self.gpu_max_mb * 0.85, self.gpu_max_mb)  # Red: 85-100%
+        )
         gpu_layout.addWidget(self.gpu_gauge)
         
         # GPU stats
@@ -532,11 +532,11 @@ class ResourceUsageWidget(QWidget):
             max_value=100,
             title="CPU Usage (%)"
         )
-        self.cpu_gauge.set_color_zones([
-            (0, self.cpu_max_percent * 0.8, '#00ff00'),      # Green: 0-48%
-            (self.cpu_max_percent * 0.8, self.cpu_max_percent, '#ffaa00'),  # Yellow: 48-60%
-            (self.cpu_max_percent, 100, '#ff0000')  # Red: 60-100%
-        ])
+        self.cpu_gauge.set_color_zones(
+            green_zone=(0, self.cpu_max_percent * 0.8),      # Green: 0-48%
+            yellow_zone=(self.cpu_max_percent * 0.8, self.cpu_max_percent),  # Yellow: 48-60%
+            red_zone=(self.cpu_max_percent, 100)  # Red: 60-100%
+        )
         cpu_layout.addWidget(self.cpu_gauge)
         
         # CPU stats
