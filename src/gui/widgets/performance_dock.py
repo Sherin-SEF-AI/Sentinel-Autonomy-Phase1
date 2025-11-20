@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 import time
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGroupBox, QTabWidget
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGroupBox, QTabWidget, QDockWidget
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor
@@ -976,10 +976,10 @@ class PerformanceLoggingWidget(QWidget):
         logger.debug("Performance logging cleared")
 
 
-class PerformanceDockWidget(QWidget):
+class PerformanceDockWidget(QDockWidget):
     """
     Performance monitoring dock widget.
-    
+
     Displays:
     - FPS graph over last 60 seconds
     - Latency graph with threshold
@@ -987,25 +987,29 @@ class PerformanceDockWidget(QWidget):
     - Resource usage (GPU/CPU gauges)
     - Performance logging controls
     """
-    
+
     def __init__(self, parent=None):
-        super().__init__(parent)
-        
+        super().__init__("Performance Monitor", parent)
+
         logger.info("Initializing Performance Dock Widget")
-        
+
+        # Create central widget for the dock
+        central_widget = QWidget()
+        self.setWidget(central_widget)
+
         # Initialize UI
-        self._init_ui()
+        self._init_ui_in_widget(central_widget)
         
         # Update timer (1 Hz for performance metrics)
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self._generate_mock_data)
         
         logger.info("Performance Dock Widget initialized: tabs=5, update_rate=1Hz")
-    
-    def _init_ui(self):
-        """Initialize the UI components"""
-        layout = QVBoxLayout(self)
-        
+
+    def _init_ui_in_widget(self, widget):
+        """Initialize the UI components in the given widget"""
+        layout = QVBoxLayout(widget)
+
         # Create tab widget for different performance views
         self.tab_widget = QTabWidget()
         
